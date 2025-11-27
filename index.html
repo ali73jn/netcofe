@@ -14,55 +14,54 @@
             <input type="text" placeholder="جستجو..." id="searchInput">
         </div>
         <div class="header-buttons">
+            <!-- این دکمه‌ها فقط در حالت ویرایش نمایش داده می‌شوند -->
+            <div class="edit-only-buttons" id="editOnlyButtons" style="display: none;">
+                <button class="add-btn" id="addCardBtn" title="افزودن کارت جدید">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <button class="data-btn" id="dataManagerBtn" title="مدیریت داده‌ها">
+                    <i class="fas fa-database"></i>
+                </button>
+            </div>
             <button class="edit-btn" id="editModeBtn">
                 <i class="fas fa-edit"></i>
                 <span>ویرایش</span>
-            </button>
-            <button class="data-btn" id="dataManagerBtn">
-                <i class="fas fa-database"></i>
-                <span>مدیریت داده</span>
             </button>
         </div>
     </header>
 
     <main class="dashboard" id="dashboard">
-        <!-- کارت ها اینجا به صورت grid نمایش داده می شوند -->
+        <!-- کارت ها در گرید نمایش داده می‌شوند -->
     </main>
 
     <!-- مودال مدیریت داده -->
     <div class="modal" id="dataModal">
         <div class="modal-content">
-            <h3>مدیریت داده‌ها</h3>
+            <h3>🗃️ مدیریت داده‌ها</h3>
+            
             <div class="data-actions">
                 <button id="exportDataBtn" class="action-btn">
                     <i class="fas fa-download"></i>
-                    دانلود فایل داده
+                    دانلود داده‌ها
                 </button>
                 <button id="importDataBtn" class="action-btn">
                     <i class="fas fa-upload"></i>
-                    آپلود فایل داده
+                    آپلود داده‌ها
                 </button>
-                <button id="addCardBtn" class="action-btn">
-                    <i class="fas fa-plus"></i>
-                    افزودن کارت جدید
+                <button id="resetDataBtn" class="action-btn reset">
+                    <i class="fas fa-trash"></i>
+                    بازنشانی
                 </button>
-            </div>
-            
-            <div class="cards-management">
-                <h4>مدیریت کارت‌ها</h4>
-                <div id="cardsList">
-                    <!-- لیست کارت‌ها اینجا نمایش داده می‌شود -->
-                </div>
             </div>
 
-            <div class="json-editor">
-                <h4>ویرایش مستقیم JSON</h4>
-                <textarea id="dataTextarea" placeholder='{"cards": []}'></textarea>
+            <div class="import-notice" id="importNotice" style="display: none;">
+                <i class="fas fa-info-circle"></i>
+                <span>فایل آپلود شده است. برای اعمال تغییرات روی "ذخیره همه تغییرات" کلیک کنید.</span>
             </div>
 
             <div class="modal-buttons">
-                <button id="saveDataBtn" class="save-btn">ذخیره همه تغییرات</button>
-                <button id="closeDataBtn" class="cancel-btn">بستن</button>
+                <button id="saveDataBtn" class="save-btn">💾 ذخیره همه تغییرات</button>
+                <button id="closeDataBtn" class="cancel-btn">❌ بستن</button>
             </div>
             <input type="file" id="fileInput" accept=".json" style="display: none;">
         </div>
