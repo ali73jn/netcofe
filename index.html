@@ -3,134 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مدیریت بوکمارک</title>
+    <title>دشبورد من</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <!-- هدر -->
-    <header class="header">
-        <div class="search-container">
-            <input type="text" class="search-input" placeholder="جستجو در بوکمارک‌ها...">
-            <span class="search-icon">🔍</span>
+    <header>
+        <div class="search-bar">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="جستجو..." id="searchInput">
         </div>
-        
-        <div class="header-controls">
-            <div class="mode-toggle">
-                <span>حالت مشاهده</span>
-                <label class="switch">
-                    <input type="checkbox" id="editModeToggle">
-                    <span class="slider"></span>
-                </label>
-                <span>حالت ویرایش</span>
+        <div class="header-buttons">
+            <!-- این دکمه‌ها فقط در حالت ویرایش نمایش داده می‌شوند -->
+            <div class="edit-only-buttons" id="editOnlyButtons" style="display: none;">
+                <button class="add-btn" id="addCardBtn" title="افزودن کارت جدید">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <button class="data-btn" id="dataManagerBtn" title="مدیریت داده‌ها">
+                    <i class="fas fa-database"></i>
+                </button>
             </div>
-            <button class="btn" id="addCardBtn">+ کارت جدید</button>
-            <button class="btn btn-secondary" id="databaseBtn">مدیریت دیتابیس</button>
+            <button class="edit-btn" id="editModeBtn">
+                <i class="fas fa-edit"></i>
+                <span>ویرایش</span>
+            </button>
         </div>
     </header>
 
-    <!-- محتوای اصلی -->
-    <main>
-        <div class="grid-container" id="cardsContainer">
-            <!-- کارت‌ها اینجا ساخته می‌شوند -->
-        </div>
+    <main class="dashboard" id="dashboard">
+        <!-- کارت ها در گرید نمایش داده می‌شوند -->
     </main>
 
-    <!-- مودال افزودن کارت -->
-    <div class="modal" id="addCardModal">
+    <!-- مودال مدیریت داده -->
+    <div class="modal" id="dataModal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3>افزودن کارت جدید</h3>
-                <button class="close-btn">&times;</button>
-            </div>
-            <form id="addCardForm">
-                <div class="form-group">
-                    <label for="cardName">نام کارت</label>
-                    <input type="text" id="cardName" required>
-                </div>
-                <button type="submit" class="btn">ایجاد کارت</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- مودال افزودن بوکمارک -->
-    <div class="modal" id="addBookmarkModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>افزودن بوکمارک جدید</h3>
-                <button class="close-btn">&times;</button>
-            </div>
-            <form id="addBookmarkForm">
-                <div class="form-group">
-                    <label for="bookmarkName">نام</label>
-                    <input type="text" id="bookmarkName" required>
-                </div>
-                <div class="form-group">
-                    <label for="bookmarkUrl">آدرس</label>
-                    <input type="url" id="bookmarkUrl" required>
-                </div>
-                <div class="form-group">
-                    <label for="bookmarkDescription">توضیحات</label>
-                    <textarea id="bookmarkDescription"></textarea>
-                </div>
-                <button type="submit" class="btn">افزودن بوکمارک</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- مودال افزودن پوشه -->
-    <div class="modal" id="addFolderModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>افزودن پوشه جدید</h3>
-                <button class="close-btn">&times;</button>
-            </div>
-            <form id="addFolderForm">
-                <div class="form-group">
-                    <label for="folderName">نام پوشه</label>
-                    <input type="text" id="folderName" required>
-                </div>
-                <button type="submit" class="btn">ایجاد پوشه</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- مودال انتخاب نوع -->
-    <div class="modal" id="selectTypeModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>انتخاب نوع</h3>
-                <button class="close-btn">&times;</button>
-            </div>
-            <div class="type-buttons">
-                <button class="btn type-btn" data-type="bookmark">
-                    📑 بوکمارک
+            <h3>🗃️ مدیریت داده‌ها</h3>
+            
+            <div class="data-actions">
+                <button id="exportDataBtn" class="action-btn">
+                    <i class="fas fa-download"></i>
+                    دانلود داده‌ها
                 </button>
-                <button class="btn type-btn" data-type="folder">
-                    📁 پوشه
+                <button id="importDataBtn" class="action-btn">
+                    <i class="fas fa-upload"></i>
+                    آپلود داده‌ها
+                </button>
+                <button id="resetDataBtn" class="action-btn reset">
+                    <i class="fas fa-trash"></i>
+                    بازنشانی
                 </button>
             </div>
-        </div>
-    </div>
 
-    <!-- مودال مدیریت دیتابیس -->
-    <div class="modal" id="databaseModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>مدیریت دیتابیس</h3>
-                <button class="close-btn">&times;</button>
+            <div class="import-notice" id="importNotice" style="display: none;">
+                <i class="fas fa-info-circle"></i>
+                <span>فایل آپلود شده است. برای اعمال تغییرات روی "ذخیره همه تغییرات" کلیک کنید.</span>
             </div>
-            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                <button class="btn" id="downloadBtn">دانلود دیتابیس</button>
-                <button class="btn btn-secondary" id="uploadBtn">آپلود دیتابیس</button>
+
+            <div class="modal-buttons">
+                <button id="saveDataBtn" class="save-btn">💾 ذخیره همه تغییرات</button>
+                <button id="closeDataBtn" class="cancel-btn">❌ بستن</button>
             </div>
             <input type="file" id="fileInput" accept=".json" style="display: none;">
         </div>
     </div>
 
-    <!-- تولتیپ -->
-    <div class="tooltip" id="tooltip"></div>
-
-    <script src="database.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
