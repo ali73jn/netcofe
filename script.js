@@ -1,679 +1,361 @@
-class Dashboard {
-    constructor() {
-        this.dashboard = document.getElementById('dashboard');
-        this.editMode = false;
-        this.data = { cards: [], version: 1, lastModified: new Date().toISOString() };
-        this.draggedCard = null;
-        this.dragOffset = { x: 0, y: 0 };
-        this.resizingCard = null;
-        this.resizingDirection = null;
-        this.pendingImportData = null;
-        
-        this.init();
-    }
+// متغیرهای سراسری
+let currentCardId = null;
+let currentHoverTimeout = null;
 
-    async init() {
-        await this.loadData();
-        this.setupEventListeners();
-        this.renderDashboard();
-        this.updateEditModeUI();
-        this.setupGridSystem();
-    }
+// زمانی که DOM لود شد
+document.addEventListener('DOMContentLoaded', function() {
+    initializeApp();
+    setupEventListeners();
+});
 
-    setupEventListeners() {
-        // دکمه حالت ویرایش
-        document.getElementById('editModeBtn').addEventListener('click', () => {
-            this.toggleEditMode();
-        });
+// مقداردهی اولیه برنامه
+function initializeApp() {
+    loadDatabase();
+    renderCards();
+}
 
-        // دکمه‌های مدیریت داده (فقط در حالت ویرایش)
-        document.getElementById('addCardBtn').addEventListener('click', () => {
-            this.addNewCard();
-        });
-
-        document.getElementById('dataManagerBtn').addEventListener('click', () => {
-            this.showDataModal();
-        });
-
-        // مدیریت داده
-        document.getElementById('exportDataBtn').addEventListener('click', () => {
-            this.exportData();
-        });
-
-        document.getElementById('importDataBtn').addEventListener('click', () => {
-            document.getElementById('fileInput').click();
-        });
-
-        document.getElementById('fileInput').addEventListener('change', (e) => {
-            this.handleFileImport(e);
-        });
-
-        document.getElementById('resetDataBtn').addEventListener('click', () => {
-            this.resetData();
-        });
-
-        document.getElementById('saveDataBtn').addEventListener('click', () => {
-            this.saveDataFromModal();
-        });
-
-        document.getElementById('closeDataBtn').addEventListener('click', () => {
-            this.hideDataModal();
-        });
-
-        // جستجو
-        document.getElementById('searchInput').addEventListener('input', (e) => {
-            this.searchItems(e.target.value);
-        });
-
-        // رویدادهای کلیک و درگ برای گرید
-        document.addEventListener('mousedown', this.handleGlobalMouseDown.bind(this));
-        document.addEventListener('mousemove', this.handleGlobalMouseMove.bind(this));
-        document.addEventListener('mouseup', this.handleGlobalMouseUp.bind(this));
-    }
-
-    setupGridSystem() {
-        // محاسبه موقعیت‌های موجود در گرید
-        this.gridPositions = new Set();
-        this.updateGridOccupancy();
-    }
-
-    updateGridOccupancy() {
-        this.gridPositions.clear();
-        this.data.cards.forEach(card => {
-            for (let x = card.x; x < card.x + card.width; x++) {
-                for (let y = card.y; y < card.y + card.height; y++) {
-                    this.gridPositions.add(`${x},${y}`);
-                }
-            }
-        });
-    }
-
-    isPositionAvailable(x, y, width, height, ignoreCardId = null) {
-        for (let i = x; i < x + width; i++) {
-            for (let j = y; j < y + height; j++) {
-                if (this.gridPositions.has(`${i},${j}`)) {
-                    // اگر کارت در حال ویرایش باشد، موقعیت‌های خودش را نادیده بگیر
-                    if (ignoreCardId) {
-                        const card = this.data.cards.find(c => c.id === ignoreCardId);
-                        if (card && i >= card.x && i < card.x + card.width && 
-                            j >= card.y && j < card.y + card.height) {
-                            continue;
-                        }
-                    }
-                    return false;
-                }
-            }
+// تنظیم event listeners
+function setupEventListeners() {
+    // مدیریت حالت ویرایش
+    document.getElementById('editModeToggle').addEventListener('change', function(e) {
+        document.body.classList.toggle('edit-mode', e.target.checked);
+    });
+    
+    // افزودن کارت
+    document.getElementById('addCardBtn').addEventListener('click', () => {
+        showModal('addCardModal');
+    });
+    
+    // فرم افزودن کارت
+    document.getElementById('addCardForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const name = document.getElementById('cardName').value;
+        if (addCard(name)) {
+            renderCards();
+            hideModal('addCardModal');
+            this.reset();
         }
-        return true;
-    }
-
-    findAvailablePosition(width, height) {
-        const maxX = 10; // حداکثر عرض گرید
-        const maxY = 10; // حداکثر ارتفاع گرید
+    });
+    
+    // فرم افزودن بوکمارک
+    document.getElementById('addBookmarkForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const name = document.getElementById('bookmarkName').value;
+        const url = document.getElementById('bookmarkUrl').value;
+        const description = document.getElementById('bookmarkDescription').value;
         
-        for (let y = 0; y <= maxY - height; y++) {
-            for (let x = 0; x <= maxX - width; x++) {
-                if (this.isPositionAvailable(x, y, width, height)) {
-                    return { x, y };
-                }
-            }
+        if (addBookmarkToCard(currentCardId, { name, url, description })) {
+            renderCards();
+            hideModal('addBookmarkModal');
+            this.reset();
         }
-        return { x: 0, y: 0 }; // موقعیت پیش‌فرض
-    }
-
-    toggleEditMode() {
-        this.editMode = !this.editMode;
-        this.updateEditModeUI();
-        this.renderDashboard();
-    }
-
-    updateEditModeUI() {
-        const editBtn = document.getElementById('editModeBtn');
-        const editOnlyButtons = document.getElementById('editOnlyButtons');
+    });
+    
+    // فرم افزودن پوشه
+    document.getElementById('addFolderForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const name = document.getElementById('folderName').value;
         
-        if (this.editMode) {
-            editBtn.classList.add('active');
-            editBtn.innerHTML = '<i class="fas fa-check"></i><span>اتمام ویرایش</span>';
-            editOnlyButtons.style.display = 'flex';
-            document.body.classList.add('edit-mode');
-        } else {
-            editBtn.classList.remove('active');
-            editBtn.innerHTML = '<i class="fas fa-edit"></i><span>ویرایش</span>';
-            editOnlyButtons.style.display = 'none';
-            document.body.classList.remove('edit-mode');
+        if (addFolderToCard(currentCardId, name)) {
+            renderCards();
+            hideModal('addFolderModal');
+            this.reset();
         }
-    }
-
-    async loadData() {
-        try {
-            // اول سعی می‌کند از localStorage بارگذاری کند
-            const localData = localStorage.getItem('dashboardData');
-            if (localData) {
-                const parsedData = JSON.parse(localData);
-                
-                // مهاجرت داده‌های قدیمی
-                this.data = this.migrateData(parsedData);
-                console.log('داده‌ها از localStorage بارگذاری شدند');
-                return;
-            }
+    });
+    
+    // مدیریت دیتابیس
+    document.getElementById('databaseBtn').addEventListener('click', () => {
+        showModal('databaseModal');
+    });
+    
+    document.getElementById('downloadBtn').addEventListener('click', downloadDatabase);
+    
+    document.getElementById('uploadBtn').addEventListener('click', () => {
+        document.getElementById('fileInput').click();
+    });
+    
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+        if (e.target.files.length > 0) {
+            handleFileUpload(e.target.files[0]);
+            this.value = '';
+        }
+    });
+    
+    // جستجو
+    document.querySelector('.search-input').addEventListener('input', function(e) {
+        performSearch(e.target.value);
+    });
+    
+    // دکمه‌های انتخاب نوع
+    document.querySelectorAll('.type-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const type = this.dataset.type;
+            hideModal('selectTypeModal');
             
-            // اگر localStorage خالی است، از فایل data.json بارگذاری کن
-            const response = await fetch('./data.json');
-            if (response.ok) {
-                const fileData = await response.json();
-                this.data = this.migrateData(fileData);
-                this.saveToLocalStorage();
-                console.log('داده‌ها از فایل بارگذاری شدند');
-            } else {
-                throw new Error('فایل داده یافت نشد');
+            if (type === 'bookmark') {
+                showModal('addBookmarkModal');
+            } else if (type === 'folder') {
+                showModal('addFolderModal');
             }
-        } catch (error) {
-            console.log('استفاده از داده‌های پیش‌فرض:', error);
-            this.data = { 
-                cards: [], 
-                version: 1, 
-                lastModified: new Date().toISOString() 
-            };
-        }
-        
-        this.updateGridOccupancy();
-    }
-
-    migrateData(data) {
-        // مهاجرت داده‌های نسخه‌های قدیمی
-        if (!data.version) {
-            data.version = 1;
-        }
-        
-        if (!data.lastModified) {
-            data.lastModified = new Date().toISOString();
-        }
-        
-        // اطمینان از وجود مختصات و ابعاد برای کارت‌ها
-        data.cards.forEach((card, index) => {
-            if (card.x === undefined || card.y === undefined) {
-                const position = this.findAvailablePosition(
-                    card.width || 2, 
-                    card.height || 2
-                );
-                card.x = position.x;
-                card.y = position.y;
-            }
-            
-            card.width = card.width || 2;
-            card.height = card.height || 2;
-            
-            // اطمینان از وجود favicon برای آیتم‌ها
-            card.items.forEach(item => {
-                if (item.type === 'link' && !item.favicon) {
-                    item.favicon = '';
-                }
-            });
         });
-        
-        return data;
-    }
+    });
+    
+    // بستن مودال‌ها
+    document.querySelectorAll('.close-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            this.closest('.modal').style.display = 'none';
+        });
+    });
+    
+    // بستن مودال با کلیک خارج
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.style.display = 'none';
+            }
+        });
+    });
+}
 
-    saveToLocalStorage() {
-        this.data.lastModified = new Date().toISOString();
-        localStorage.setItem('dashboardData', JSON.stringify(this.data));
-    }
+// رندر کارت‌ها
+function renderCards() {
+    const container = document.getElementById('cardsContainer');
+    container.innerHTML = '';
 
-    renderDashboard() {
-        this.dashboard.innerHTML = '';
-        this.data.cards.forEach(card => this.renderCard(card));
-    }
-
-    renderCard(card) {
+    database.cards.forEach(card => {
         const cardElement = document.createElement('div');
         cardElement.className = 'card';
-        cardElement.dataset.cardId = card.id;
-        
-        // محاسبه موقعیت و سایز بر اساس گرید
-        const left = card.x * (100 + 15); // cell-size + gap
-        const top = card.y * (100 + 15);
-        const width = card.width * 100 + (card.width - 1) * 15;
-        const height = card.height * 100 + (card.height - 1) * 15;
-        
-        cardElement.style.left = left + 'px';
-        cardElement.style.top = top + 'px';
-        cardElement.style.width = width + 'px';
-        cardElement.style.height = height + 'px';
-        
-        cardElement.innerHTML = `
-            <div class="card-header">
-                <div class="card-title">${this.escapeHtml(card.title)}</div>
-                <div class="card-actions">
-                    ${this.editMode ? `
-                        <button onclick="dashboard.addItemToCard('${card.id}')" title="افزودن آیتم">
-                            <i class="fas fa-plus"></i>
-                        </button>
-                        <button onclick="dashboard.editCard('${card.id}')" title="ویرایش کارت">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button onclick="dashboard.deleteCard('${card.id}')" title="حذف کارت">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    ` : ''}
+        cardElement.innerHTML = createCardHTML(card);
+        container.appendChild(cardElement);
+    });
+}
+
+// ایجاد HTML کارت
+function createCardHTML(card) {
+    return `
+        <div class="card-header">
+            <div class="card-title">${card.name}</div>
+            <div class="card-controls">
+                <button class="icon-btn" onclick="renameCardPrompt('${card.id}')">✏️</button>
+                <button class="icon-btn" onclick="showAddItemModal('${card.id}')">➕</button>
+                <button class="icon-btn" onclick="deleteCard('${card.id}')">🗑️</button>
+            </div>
+        </div>
+        <div class="card-content">
+            ${card.items.map(item => createItemHTML(item, card.id)).join('')}
+        </div>
+    `;
+}
+
+// ایجاد HTML آیتم
+function createItemHTML(item, cardId) {
+    if (item.type === 'bookmark') {
+        return `
+            <div class="bookmark-item" 
+                 onmouseenter="startHoverTimer(event, '${item.description}')" 
+                 onmouseleave="clearHoverTimer()"
+                 onclick="openBookmark('${item.url}')">
+                <div class="item-header">
+                    <div class="item-name">${item.name}</div>
+                    <div class="item-controls">
+                        <button class="icon-btn" onclick="event.stopPropagation(); editBookmark('${cardId}', '${item.id}')">✏️</button>
+                        <button class="icon-btn" onclick="event.stopPropagation(); deleteItem('${cardId}', '${item.id}')">🗑️</button>
+                    </div>
                 </div>
+                <div class="item-url">${item.url}</div>
+                ${item.description ? `<div class="item-description">${item.description}</div>` : ''}
             </div>
-            <div class="items-grid">
-                ${this.renderItems(card.items)}
-            </div>
-            ${this.editMode ? `
-                <div class="resize-handle right"></div>
-                <div class="resize-handle bottom"></div>
-                <div class="resize-handle corner bottom-right"></div>
-            ` : ''}
         `;
-
-        this.dashboard.appendChild(cardElement);
-    }
-
-    renderItems(items) {
-        return items.map(item => `
-            <div class="item ${item.type}" 
-                 onclick="dashboard.handleItemClick(event, '${item.id}')">
-                <div class="item-icon">
-                    ${item.favicon ? 
-                        `<img src="${item.favicon}" alt="${this.escapeHtml(item.name)}" onerror="this.style.display='none'">` : 
-                        `<i class="${item.icon || (item.type === 'folder' ? 'fas fa-folder' : 'fas fa-link')}"></i>`
-                    }
+    } else if (item.type === 'folder') {
+        return `
+            <div class="folder-item" onclick="openFolder('${cardId}', '${item.id}')">
+                <div class="item-header">
+                    <div class="item-name">${item.icon} ${item.name}</div>
+                    <div class="item-controls">
+                        <button class="icon-btn" onclick="event.stopPropagation(); renameFolder('${cardId}', '${item.id}')">✏️</button>
+                        <button class="icon-btn" onclick="event.stopPropagation(); deleteItem('${cardId}', '${item.id}')">🗑️</button>
+                    </div>
                 </div>
-                <div class="item-name">${this.escapeHtml(item.name)}</div>
+                <div class="item-description">${item.items.length} آیتم</div>
             </div>
-        `).join('');
+        `;
     }
+    return '';
+}
 
-    handleItemClick(event, itemId) {
-        if (this.editMode) {
-            event.preventDefault();
-            this.editItem(itemId);
-            return;
-        }
+// نمایش مودال
+function showModal(modalId) {
+    document.getElementById(modalId).style.display = 'flex';
+}
 
-        // پیدا کردن آیتم و باز کردن لینک یا پوشه
-        for (let card of this.data.cards) {
-            const item = card.items.find(i => i.id === itemId);
-            if (item) {
-                if (item.type === 'link' && item.url) {
-                    window.open(item.url, '_blank');
-                } else if (item.type === 'folder') {
-                    this.openFolder(item);
-                }
-                break;
-            }
-        }
+function hideModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+}
+
+// نمایش مودال انتخاب نوع
+function showAddItemModal(cardId) {
+    currentCardId = cardId;
+    showModal('selectTypeModal');
+}
+
+// مدیریت hover برای تولتیپ
+function startHoverTimer(event, description) {
+    if (!description) return;
+    
+    clearHoverTimer();
+    
+    currentHoverTimeout = setTimeout(() => {
+        showTooltip(event, description);
+    }, 1000);
+}
+
+function clearHoverTimer() {
+    if (currentHoverTimeout) {
+        clearTimeout(currentHoverTimeout);
+        currentHoverTimeout = null;
     }
+    hideTooltip();
+}
 
-    openFolder(folder) {
-        // ایجاد یک کارت جدید برای محتوای پوشه
-        const folderCard = {
-            id: 'folder-' + Date.now(),
-            title: folder.name,
-            x: 0,
-            y: 0,
-            width: 3,
-            height: 3,
-            items: folder.items || []
-        };
-        
-        this.data.cards.push(folderCard);
-        this.saveToLocalStorage();
-        this.renderDashboard();
-    }
+function showTooltip(event, description) {
+    const tooltip = document.getElementById('tooltip');
+    tooltip.textContent = description;
+    tooltip.style.display = 'block';
+    
+    const rect = event.target.getBoundingClientRect();
+    tooltip.style.left = (rect.left + window.scrollX) + 'px';
+    tooltip.style.top = (rect.top + window.scrollY - tooltip.offsetHeight - 10) + 'px';
+}
 
-    // مدیریت درگ و ریزایز
-    handleGlobalMouseDown(e) {
-        if (!this.editMode) return;
+function hideTooltip() {
+    document.getElementById('tooltip').style.display = 'none';
+}
 
-        const cardElement = e.target.closest('.card');
-        if (!cardElement) return;
-
-        const cardId = cardElement.dataset.cardId;
-        const card = this.data.cards.find(c => c.id === cardId);
-        if (!card) return;
-
-        // تشخیص نوع عملیات (درگ یا ریزایز)
-        if (e.target.classList.contains('resize-handle')) {
-            this.startResizing(card, e.target, e);
-        } else if (e.target.closest('.card-header')) {
-            this.startDragging(card, e);
-        }
-    }
-
-    startDragging(card, e) {
-        this.draggedCard = card;
-        this.dragOffset.x = e.clientX - (card.x * (100 + 15));
-        this.dragOffset.y = e.clientY - (card.y * (100 + 15));
-    }
-
-    startResizing(card, handle, e) {
-        this.resizingCard = card;
-        this.resizingDirection = handle.classList[1]; // right, bottom, bottom-right
-        this.resizingStart = { x: e.clientX, y: e.clientY };
-        this.resizingStartSize = { width: card.width, height: card.height };
-        
-        const cardElement = document.querySelector(`[data-card-id="${card.id}"]`);
-        cardElement.classList.add('resizing');
-    }
-
-    handleGlobalMouseMove(e) {
-        if (this.draggedCard) {
-            this.handleDragging(e);
-        } else if (this.resizingCard) {
-            this.handleResizing(e);
-        }
-    }
-
-    handleDragging(e) {
-        const gridX = Math.round((e.clientX - this.dragOffset.x) / (100 + 15));
-        const gridY = Math.round((e.clientY - this.dragOffset.y) / (100 + 15));
-        
-        // بررسی امکان جابجایی به موقعیت جدید
-        if (this.isPositionAvailable(gridX, gridY, this.draggedCard.width, this.draggedCard.height, this.draggedCard.id)) {
-            this.draggedCard.x = Math.max(0, gridX);
-            this.draggedCard.y = Math.max(0, gridY);
-            this.renderDashboard();
-        }
-    }
-
-    handleResizing(e) {
-        const deltaX = e.clientX - this.resizingStart.x;
-        const deltaY = e.clientY - this.resizingStart.y;
-        
-        let newWidth = this.resizingStartSize.width;
-        let newHeight = this.resizingStartSize.height;
-        
-        if (this.resizingDirection === 'right' || this.resizingDirection === 'bottom-right') {
-            newWidth = Math.max(2, this.resizingStartSize.width + Math.round(deltaX / (100 + 15)));
-        }
-        
-        if (this.resizingDirection === 'bottom' || this.resizingDirection === 'bottom-right') {
-            newHeight = Math.max(2, this.resizingStartSize.height + Math.round(deltaY / (100 + 15)));
-        }
-        
-        // بررسی امکان تغییر سایز
-        if (this.isPositionAvailable(this.resizingCard.x, this.resizingCard.y, newWidth, newHeight, this.resizingCard.id)) {
-            this.resizingCard.width = newWidth;
-            this.resizingCard.height = newHeight;
-            this.renderDashboard();
-        }
-    }
-
-    handleGlobalMouseUp() {
-        if (this.draggedCard || this.resizingCard) {
-            this.saveToLocalStorage();
-            this.updateGridOccupancy();
-            
-            if (this.resizingCard) {
-                const cardElement = document.querySelector(`[data-card-id="${this.resizingCard.id}"]`);
-                if (cardElement) {
-                    cardElement.classList.remove('resizing');
-                }
-            }
-        }
-        
-        this.draggedCard = null;
-        this.resizingCard = null;
-        this.resizingDirection = null;
-    }
-
-    // مدیریت کارت‌ها و آیتم‌ها
-    addNewCard() {
-        const title = prompt('عنوان کارت جدید:');
-        if (title && title.trim()) {
-            const position = this.findAvailablePosition(2, 2);
-            const newCard = {
-                id: Date.now().toString(),
-                title: title.trim(),
-                x: position.x,
-                y: position.y,
-                width: 2,
-                height: 2,
-                items: []
-            };
-            this.data.cards.push(newCard);
-            this.saveToLocalStorage();
-            this.updateGridOccupancy();
-            this.renderDashboard();
-        }
-    }
-
-    addItemToCard(cardId) {
-        const card = this.data.cards.find(c => c.id === cardId);
-        if (!card) return;
-
-        const name = prompt('نام آیتم:');
-        if (!name) return;
-
-        const type = confirm('آیا این آیتم یک پوشه است؟\nOK = پوشه\nCancel = لینک') ? 'folder' : 'link';
-        
-        let url = '';
-        if (type === 'link') {
-            url = prompt('آدرس سایت:', 'https://');
-            if (!url) return;
-        }
-
-        const newItem = {
-            id: Date.now().toString(),
-            name: name.trim(),
-            type: type,
-            url: url,
-            icon: type === 'folder' ? 'fas fa-folder' : 'fas fa-link',
-            favicon: ''
-        };
-
-        // برای لینک‌ها، favicon را دانلود کن
-        if (type === 'link' && url) {
-            this.downloadFavicon(url).then(faviconUrl => {
-                newItem.favicon = faviconUrl;
-                this.saveToLocalStorage();
-                this.renderDashboard();
-            });
-        }
-
-        card.items.push(newItem);
-        this.saveToLocalStorage();
-        this.renderDashboard();
-    }
-
-    async downloadFavicon(url) {
-        try {
-            // ساخت آدرس favicon
-            const domain = new URL(url).hostname;
-            const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
-            
-            // دانلود و ذخیره در localStorage
-            const response = await fetch(faviconUrl);
-            const blob = await response.blob();
-            
-            return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    const base64data = reader.result;
-                    resolve(base64data);
-                };
-                reader.readAsDataURL(blob);
-            });
-        } catch (error) {
-            console.error('خطا در دانلود favicon:', error);
-            return '';
-        }
-    }
-
-    editCard(cardId) {
-        const card = this.data.cards.find(c => c.id === cardId);
-        if (!card) return;
-
-        const newTitle = prompt('عنوان جدید کارت:', card.title);
-        if (newTitle && newTitle.trim()) {
-            card.title = newTitle.trim();
-            this.saveToLocalStorage();
-            this.renderDashboard();
-        }
-    }
-
-    editItem(itemId) {
-        for (let card of this.data.cards) {
-            const item = card.items.find(i => i.id === itemId);
-            if (item) {
-                const newName = prompt('نام جدید:', item.name);
-                if (newName) {
-                    item.name = newName;
-                    this.saveToLocalStorage();
-                    this.renderDashboard();
-                }
-                break;
-            }
-        }
-    }
-
-    deleteCard(cardId) {
-        if (confirm('آیا از حذف این کارت مطمئنید؟')) {
-            this.data.cards = this.data.cards.filter(card => card.id !== cardId);
-            this.saveToLocalStorage();
-            this.updateGridOccupancy();
-            this.renderDashboard();
-        }
-    }
-
-    // مدیریت داده‌ها
-    showDataModal() {
-        this.showModal('dataModal');
-        this.updateSaveButtonState();
-    }
-
-    hideDataModal() {
-        this.hideModal('dataModal');
-        this.pendingImportData = null;
-        this.updateSaveButtonState();
-    }
-
-    updateSaveButtonState() {
-        const saveBtn = document.getElementById('saveDataBtn');
-        saveBtn.disabled = !this.pendingImportData;
-    }
-
-    exportData() {
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-        const filename = `dashboard-data-${timestamp}.json`;
-        
-        const dataStr = JSON.stringify(this.data, null, 2);
-        const blob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        
-        URL.revokeObjectURL(url);
-    }
-
-    handleFileImport(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const newData = JSON.parse(e.target.result);
-                
-                // اعتبارسنجی داده‌ها
-                if (!newData.cards || !Array.isArray(newData.cards)) {
-                    throw new Error('فرمت فایل نامعتبر است');
-                }
-
-                this.pendingImportData = newData;
-                this.showImportNotice();
-                this.updateSaveButtonState();
-                
-            } catch (error) {
-                alert('خطا در خواندن فایل! لطفاً فرمت JSON را بررسی کنید.\n' + error.message);
-            }
-        };
-        reader.readAsText(file);
-    }
-
-    showImportNotice() {
-        const notice = document.getElementById('importNotice');
-        notice.style.display = 'flex';
-    }
-
-    saveDataFromModal() {
-        if (!this.pendingImportData) return;
-
-        try {
-            this.data = this.migrateData(this.pendingImportData);
-            this.saveToLocalStorage();
-            this.updateGridOccupancy();
-            this.renderDashboard();
-            
-            this.pendingImportData = null;
-            this.hideDataModal();
-            
-            alert('✅ داده‌ها با موفقیت ذخیره شدند!');
-        } catch (error) {
-            alert('❌ خطا در ذخیره داده‌ها: ' + error.message);
-        }
-    }
-
-    resetData() {
-        if (confirm('⚠️ آیا از بازنشانی همه داده‌ها مطمئنید؟ این عمل غیرقابل بازگشت است!')) {
-            this.data = { 
-                cards: [], 
-                version: 1, 
-                lastModified: new Date().toISOString() 
-            };
-            this.saveToLocalStorage();
-            this.updateGridOccupancy();
-            this.renderDashboard();
-            this.hideDataModal();
-            alert('✅ داده‌ها با موفقیت بازنشانی شدند!');
-        }
-    }
-
-    searchItems(query) {
-        const cards = this.dashboard.querySelectorAll('.card');
-        
-        cards.forEach(card => {
-            const items = card.querySelectorAll('.item');
-            let hasVisibleItems = false;
-
-            items.forEach(item => {
-                const itemName = item.querySelector('.item-name').textContent.toLowerCase();
-                const isVisible = itemName.includes(query.toLowerCase());
-                item.style.display = isVisible ? 'flex' : 'none';
-                if (isVisible) hasVisibleItems = true;
-            });
-
-            card.style.display = hasVisibleItems || !query ? 'block' : 'none';
-        });
-    }
-
-    showModal(modalId) {
-        document.getElementById(modalId).style.display = 'block';
-    }
-
-    hideModal(modalId) {
-        document.getElementById(modalId).style.display = 'none';
-    }
-
-    escapeHtml(unsafe) {
-        return unsafe
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
+// باز کردن بوکمارک
+function openBookmark(url) {
+    if (!document.body.classList.contains('edit-mode')) {
+        window.open(url, '_blank');
     }
 }
 
-// راه اندازی دشبورد
-let dashboard;
-document.addEventListener('DOMContentLoaded', () => {
-    dashboard = new Dashboard();
-});
+// مدیریت کارت‌ها
+function deleteCard(cardId) {
+    if (confirm('آیا از حذف این کارت اطمینان دارید؟')) {
+        if (deleteCard(cardId)) {
+            renderCards();
+        }
+    }
+}
+
+function renameCardPrompt(cardId) {
+    const card = findCardById(cardId);
+    if (card) {
+        const newName = prompt('نام جدید کارت:', card.name);
+        if (newName && newName.trim() && renameCard(cardId, newName.trim())) {
+            renderCards();
+        }
+    }
+}
+
+// مدیریت آیتم‌ها
+function deleteItem(cardId, itemId) {
+    if (confirm('آیا از حذف این آیتم اطمینان دارید؟')) {
+        if (deleteItemFromCard(cardId, itemId)) {
+            renderCards();
+        }
+    }
+}
+
+function editBookmark(cardId, itemId) {
+    const result = findItemInCard(cardId, itemId);
+    if (result && result.item.type === 'bookmark') {
+        const bookmark = result.item;
+        const newName = prompt('نام جدید:', bookmark.name);
+        const newUrl = prompt('آدرس جدید:', bookmark.url);
+        const newDesc = prompt('توضیحات جدید:', bookmark.description);
+        
+        if (newName && newUrl) {
+            bookmark.name = newName;
+            bookmark.url = newUrl;
+            bookmark.description = newDesc;
+            if (saveDatabase()) {
+                renderCards();
+            }
+        }
+    }
+}
+
+function renameFolder(cardId, itemId) {
+    const result = findItemInCard(cardId, itemId);
+    if (result && result.item.type === 'folder') {
+        const folder = result.item;
+        const newName = prompt('نام جدید پوشه:', folder.name);
+        if (newName && newName.trim()) {
+            folder.name = newName.trim();
+            if (saveDatabase()) {
+                renderCards();
+            }
+        }
+    }
+}
+
+// جستجو
+function performSearch(query) {
+    if (query.trim()) {
+        const results = searchBookmarks(query);
+        displaySearchResults(results);
+    } else {
+        renderCards();
+    }
+}
+
+function displaySearchResults(results) {
+    const container = document.getElementById('cardsContainer');
+    container.innerHTML = '';
+    
+    if (results.length === 0) {
+        container.innerHTML = '<div style="color: white; text-align: center; grid-column: 1/-1;">نتیجه‌ای یافت نشد</div>';
+        return;
+    }
+    
+    const resultsHTML = results.map(result => `
+        <div class="bookmark-item" onclick="openBookmark('${result.url}')">
+            <div class="item-header">
+                <div class="item-name">${result.name}</div>
+            </div>
+            <div class="item-url">${result.url}</div>
+            <div class="item-description">${result.description || ''}</div>
+            <div style="font-size: 11px; opacity: 0.6; margin-top: 5px;">
+                📁 ${result.cardName} ${result.folderName ? `→ ${result.folderName}` : ''}
+            </div>
+        </div>
+    `).join('');
+    
+    container.innerHTML = `<div class="card" style="grid-column: 1/-1;">
+        <div class="card-header">
+            <div class="card-title">نتایج جستجو</div>
+        </div>
+        <div class="card-content">
+            ${resultsHTML}
+        </div>
+    </div>`;
+}
+
+// آپلود فایل
+async function handleFileUpload(file) {
+    try {
+        if (confirm('آیا از آپلود دیتابیس جدید اطمینان دارید؟ داده‌های فعلی جایگزین خواهند شد.')) {
+            await uploadDatabase(file);
+            renderCards();
+            alert('دیتابیس با موفقیت آپلود شد!');
+        }
+    } catch (error) {
+        alert('خطا در آپلود فایل: ' + error.message);
+    }
+}
+
+// توابعی که بعداً پیاده‌سازی می‌شوند
+function openFolder(cardId, folderId) {
+    // برای نسخه‌های بعدی
+    alert('امکان بازکردن پوشه در این نسخه وجود ندارد');
+}

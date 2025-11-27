@@ -2,152 +2,135 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 :root {
-    --grid-cell-size: 100px;
-    --grid-gap: 15px;
-    --card-min-width: 2;
-    --card-min-height: 2;
-    --header-height: 70px;
+    --primary-color: #6366f1;
+    --secondary-color: #8b5cf6;
+    --glass-bg: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    --spacing: 20px;
 }
 
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
     padding: 20px;
-    direction: rtl;
-}
-
-body.edit-mode {
-    background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
+    background-image: url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1" fill="rgba(255,255,255,0.1)"/></svg>');
+    background-size: 20px 20px;
 }
 
 /* هدر */
-header {
+.header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 30px;
-    background: rgba(255, 255, 255, 0.95);
     padding: 15px 25px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
     border-radius: 15px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow);
 }
 
-.search-bar {
-    display: flex;
-    align-items: center;
-    background: rgba(255, 255, 255, 0.9);
-    padding: 10px 20px;
-    border-radius: 25px;
-    flex-grow: 1;
-    margin-left: 20px;
-    border: 2px solid #e0e0e0;
-    transition: all 0.3s ease;
-}
-
-.search-bar:focus-within {
-    border-color: #667eea;
-}
-
-.search-bar i {
-    color: #666;
-    margin-left: 10px;
-}
-
-.search-bar input {
-    border: none;
-    outline: none;
-    background: none;
-    width: 100%;
-    font-size: 16px;
-    color: #333;
-}
-
-.header-buttons {
+.header-controls {
     display: flex;
     gap: 15px;
     align-items: center;
 }
 
-.edit-only-buttons {
-    display: flex;
-    gap: 10px;
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    background: var(--primary-color);
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
 }
 
-.edit-btn, .data-btn, .add-btn {
-    background: #4CAF50;
-    color: white;
-    border: none;
-    padding: 12px 20px;
-    border-radius: 25px;
-    cursor: pointer;
+.btn:hover {
+    background: var(--secondary-color);
+}
+
+.btn-secondary {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+}
+
+.mode-toggle {
     display: flex;
     align-items: center;
-    gap: 8px;
-    transition: all 0.3s ease;
-    font-size: 14px;
+    gap: 10px;
+    color: white;
     font-weight: 500;
 }
 
-.edit-btn:hover, .data-btn:hover, .add-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-}
-
-.edit-btn.active {
-    background: #f44336;
-}
-
-.data-btn {
-    background: #2196F3;
-}
-
-.add-btn {
-    background: #FF9800;
+/* سوئیچ حالت ویرایش */
+.switch {
+    position: relative;
+    display: inline-block;
     width: 50px;
-    height: 50px;
-    padding: 0;
-    justify-content: center;
+    height: 24px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    border-radius: 24px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
     border-radius: 50%;
 }
 
-/* سیستم گرید */
-.dashboard {
+input:checked + .slider {
+    background-color: var(--primary-color);
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+/* گرید اصلی */
+.grid-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, var(--grid-cell-size));
-    grid-auto-rows: var(--grid-cell-size);
-    gap: var(--grid-gap);
-    position: relative;
-    min-height: 500px;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--spacing);
+    padding: 10px;
 }
 
 /* کارت‌ها */
 .card {
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 12px;
-    padding: 15px;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
-    border: 2px solid transparent;
-    position: absolute;
-    overflow: hidden;
-}
-
-.card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
-}
-
-body.edit-mode .card {
-    border: 2px dashed #ff6b6b;
-    cursor: move;
-}
-
-body.edit-mode .card.resizing {
-    border: 2px solid #2196F3;
+    background: var(--glass-bg);
+    backdrop-filter: blur(15px);
+    border-radius: 15px;
+    border: 1px solid var(--glass-border);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    min-height: 200px;
+    position: relative;
 }
 
 .card-header {
@@ -156,166 +139,84 @@ body.edit-mode .card.resizing {
     align-items: center;
     margin-bottom: 15px;
     padding-bottom: 10px;
-    border-bottom: 2px solid #f0f0f0;
-    cursor: move;
+    border-bottom: 1px solid var(--glass-border);
 }
 
 .card-title {
-    font-size: 16px;
-    font-weight: bold;
-    color: #333;
-    flex-grow: 1;
+    color: white;
+    font-size: 18px;
+    font-weight: 600;
 }
 
-.card-actions {
+.card-controls {
     display: flex;
-    gap: 5px;
-    opacity: 0;
-    transition: opacity 0.3s ease;
+    gap: 8px;
 }
 
-body.edit-mode .card-actions {
-    opacity: 1;
-}
-
-.card-actions button {
+.icon-btn {
     background: none;
     border: none;
+    color: white;
     cursor: pointer;
-    color: #666;
-    font-size: 12px;
-    padding: 4px;
-    border-radius: 4px;
-    transition: all 0.3s ease;
+    padding: 5px;
+    border-radius: 5px;
+    font-size: 14px;
 }
 
-.card-actions button:hover {
-    background: #f0f0f0;
-    color: #333;
+.icon-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
 }
 
-/* هندلرهای تغییر سایز */
-.resize-handle {
-    position: absolute;
-    background: #2196F3;
-    border-radius: 2px;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-body.edit-mode .resize-handle {
-    opacity: 1;
-}
-
-.resize-handle.right {
-    right: 2px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 6px;
-    height: 40px;
-    cursor: ew-resize;
-}
-
-.resize-handle.bottom {
-    bottom: 2px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 40px;
-    height: 6px;
-    cursor: ns-resize;
-}
-
-.resize-handle.corner {
-    width: 12px;
-    height: 12px;
-    background: #FF9800;
-}
-
-.resize-handle.bottom-right {
-    bottom: 2px;
-    right: 2px;
-    cursor: nwse-resize;
-}
-
-/* آیتم‌ها */
-.items-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-    gap: 10px;
-    height: calc(100% - 40px);
-    overflow-y: auto;
-}
-
-.item {
+/* آیتم‌های داخل کارت */
+.card-content {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    text-align: center;
-    cursor: pointer;
-    padding: 8px 5px;
+    gap: 10px;
+}
+
+.bookmark-item, .folder-item {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 12px;
     border-radius: 8px;
-    transition: all 0.3s ease;
-    position: relative;
-}
-
-.item:hover {
-    background: #f8f9fa;
-    transform: scale(1.05);
-}
-
-body.edit-mode .item:hover::after {
-    content: '✏️';
-    position: absolute;
-    top: -5px;
-    left: -5px;
-    background: #ffeb3b;
-    border-radius: 50%;
-    width: 18px;
-    height: 18px;
-    font-size: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.item-icon {
-    width: 35px;
-    height: 35px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 6px;
-    font-size: 16px;
-    position: relative;
-    overflow: hidden;
-}
-
-.item-icon img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 50%;
-}
-
-.item-icon i {
+    border: 1px solid rgba(255, 255, 255, 0.1);
     color: white;
+    cursor: pointer;
+    position: relative;
 }
 
-.item.folder .item-icon {
-    background: linear-gradient(135deg, #ffd89b, #19547b);
+.bookmark-item:hover, .folder-item:hover {
+    background: rgba(255, 255, 255, 0.1);
 }
 
-.item.link .item-icon {
-    background: linear-gradient(135deg, #667eea, #764ba2);
+.item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
 }
 
 .item-name {
-    font-size: 11px;
-    color: #333;
-    line-height: 1.3;
-    word-break: break-word;
-    max-width: 60px;
+    font-weight: 500;
+    flex: 1;
+}
+
+.item-url {
+    font-size: 12px;
+    opacity: 0.7;
+    margin-bottom: 5px;
+    direction: ltr;
+    text-align: left;
+    word-break: break-all;
+}
+
+.item-description {
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+.item-controls {
+    display: flex;
+    gap: 5px;
 }
 
 /* مودال‌ها */
@@ -326,193 +227,150 @@ body.edit-mode .item:hover::after {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(5px);
     z-index: 1000;
+    justify-content: center;
+    align-items: center;
 }
 
 .modal-content {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: white;
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    border-radius: 15px;
     padding: 30px;
-    border-radius: 20px;
     width: 90%;
     max-width: 500px;
-    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow);
 }
 
-.modal-content h3 {
-    margin-bottom: 25px;
-    color: #333;
-    text-align: center;
-    font-size: 22px;
-}
-
-/* دکمه‌های action */
-.data-actions {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 12px;
-    margin-bottom: 25px;
-}
-
-.action-btn {
-    background: #2196F3;
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
     color: white;
+}
+
+.close-btn {
+    background: none;
     border: none;
-    padding: 15px;
-    border-radius: 12px;
+    color: white;
+    font-size: 24px;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    transition: all 0.3s ease;
-    font-size: 16px;
-    justify-content: flex-start;
 }
 
-.action-btn:hover {
-    background: #1976D2;
-    transform: translateY(-2px);
+.form-group {
+    margin-bottom: 15px;
 }
 
-.action-btn.reset {
-    background: #f44336;
+.form-group label {
+    display: block;
+    color: white;
+    margin-bottom: 5px;
+    font-weight: 500;
 }
 
-.action-btn.reset:hover {
-    background: #d32f2f;
+.form-group input, .form-group textarea {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    backdrop-filter: blur(10px);
 }
 
-.action-btn i {
-    font-size: 20px;
-    width: 24px;
-    text-align: center;
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
 }
 
-.import-notice {
-    background: #e3f2fd;
-    border: 2px solid #2196F3;
-    border-radius: 10px;
-    padding: 15px;
-    margin: 15px 0;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: #1976D2;
-    font-size: 14px;
-}
-
-.import-notice i {
-    font-size: 18px;
-}
-
-/* دکمه‌های مودال */
-.modal-buttons {
+/* دکمه‌های انتخاب نوع */
+.type-buttons {
     display: flex;
     gap: 15px;
-    margin-top: 25px;
+    justify-content: center;
 }
 
-.save-btn, .cancel-btn {
+.type-btn {
     flex: 1;
-    padding: 15px;
-    border: none;
-    border-radius: 12px;
+    padding: 20px;
     font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
 }
 
-.save-btn {
-    background: #4CAF50;
+/* جستجو */
+.search-container {
+    position: relative;
+    flex: 1;
+    max-width: 400px;
+}
+
+.search-input {
+    width: 100%;
+    padding: 10px 40px 10px 15px;
+    border-radius: 25px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    backdrop-filter: blur(10px);
+}
+
+.search-input::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.search-icon {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
     color: white;
 }
 
-.save-btn:hover {
-    background: #45a049;
-    transform: translateY(-2px);
-}
-
-.save-btn:disabled {
-    background: #cccccc;
-    cursor: not-allowed;
-    transform: none;
-}
-
-.cancel-btn {
-    background: #757575;
+/* تولتیپ */
+.tooltip {
+    display: none;
+    position: fixed;
+    background: rgba(0, 0, 0, 0.9);
     color: white;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-size: 12px;
+    z-index: 1001;
+    max-width: 300px;
+    word-wrap: break-word;
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
 }
 
-.cancel-btn:hover {
-    background: #616161;
-    transform: translateY(-2px);
+/* حالت ویرایش */
+.edit-mode .card-controls {
+    display: flex !important;
 }
 
-/* اسکرول بار */
-.items-grid::-webkit-scrollbar {
-    width: 6px;
+.edit-mode .item-controls {
+    display: flex !important;
 }
 
-.items-grid::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 3px;
+/* حالت عادی - مخفی کردن کنترل‌ها */
+.card-controls {
+    display: none;
 }
 
-.items-grid::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
-    border-radius: 3px;
+.edit-mode .card-controls {
+    display: flex;
 }
 
-.items-grid::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
+.item-controls {
+    display: none;
 }
 
-/* رسپانسیو */
-@media (max-width: 768px) {
-    :root {
-        --grid-cell-size: 80px;
-        --grid-gap: 10px;
-    }
-    
-    header {
-        flex-direction: column;
-        gap: 15px;
-        padding: 15px;
-    }
-    
-    .search-bar {
-        margin-left: 0;
-        width: 100%;
-    }
-    
-    .header-buttons {
-        width: 100%;
-        justify-content: center;
-    }
-    
-    .modal-content {
-        width: 95%;
-        padding: 20px;
-    }
-    
-    .card {
-        padding: 10px;
-    }
-    
-    .items-grid {
-        grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
-        gap: 8px;
-    }
-    
-    .item-icon {
-        width: 30px;
-        height: 30px;
-        font-size: 14px;
-    }
+.edit-mode .item-controls {
+    display: flex;
 }
