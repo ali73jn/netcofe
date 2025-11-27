@@ -158,7 +158,9 @@ export default function App() {
     });
   };
 
-  // --- رندر آیتم‌ها (با قابلیت جستجو) ---
+// ... (سایر کدها)
+
+  // --- رندر آیتم‌ها (حالت شبکه آیکون‌ها) ---
   const renderItems = (items, cardId) => {
     // اگر در حالت جستجو هستیم، فقط آیتم‌های مچ شده را نشان بده
     const filtered = items.filter(item => 
@@ -166,45 +168,71 @@ export default function App() {
       (item.desc && item.desc.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
-    return filtered.map(item => (
-      <div key={item.id} className="group relative flex items-center p-2 mb-1 hover:bg-white/10 rounded-lg cursor-pointer">
-        {/* آیکون */}
-        <div className="w-8 h-8 rounded bg-white/5 flex items-center justify-center mr-2 shrink-0">
-          {item.type === 'folder' ? (
-            <Folder size={18} className="text-yellow-400" />
-          ) : (
-            <img src={item.icon} alt="" className="w-5 h-5" onError={(e) => {e.target.src='https://via.placeholder.com/32'}} />
-          )}
-        </div>
-        
-        {/* متن */}
-        <div className="flex-1 min-w-0 ml-2">
-          <div className="text-sm font-medium truncate text-white">{item.name}</div>
-          <div className="text-xs text-gray-400 truncate">{item.type === 'bookmark' ? item.desc : `${item.items.length} آیتم`}</div>
-        </div>
+    if (filtered.length === 0) {
+      if (searchQuery) return <p className="text-gray-400 text-sm text-center p-4">نتیجه‌ای یافت نشد.</p>;
+      if (!isEditMode) return <p className="text-gray-400 text-sm text-center p-4">کارت خالی است.</p>;
+    }
 
-        {/* اکشن‌های حالت ویرایش */}
-        {isEditMode && (
-          <button 
-             onClick={(e) => {
-               e.stopPropagation();
-               // منطق حذف آیتم اینجا اضافه می‌شود (ساده‌سازی شده)
-               alert('برای حذف کامل باید لاجیک تو در تو پیاده شود');
-             }}
-             className="text-red-400 opacity-0 group-hover:opacity-100 p-1"
-          >
-            <Trash2 size={14} />
-          </button>
-        )}
+    return (
+      <div className="flex flex-wrap gap-4 justify-start p-2"> 
+        {filtered.map(item => {
+          const isBookmark = item.type === 'bookmark';
+          const linkTarget = isBookmark ? item.url : '#';
+          
+          return (
+            <a 
+              href={linkTarget} 
+              target={isBookmark ? "_blank" : "_self"}
+              key={item.id} 
+              title={item.desc || item.name}
+              // Card Style: شبیه به آیکون‌های ویندوز/موبایل
+              className="w-[70px] flex flex-col items-center p-2 rounded-lg text-center transition-none bg-transparent hover:bg-white/10 relative"
+            >
+              {/* کانتینر آیکون (برای استایل دهی) */}
+              <div 
+                className="w-12 h-12 rounded-xl flex items-center justify-center mb-1 
+                           bg-white/20 backdrop-blur-sm shadow-lg border border-white/30"
+              >
+                {isBookmark ? (
+                  <img 
+                    src={item.icon} 
+                    alt={item.name} 
+                    className="w-8 h-8 rounded-lg" 
+                    onError={(e) => {e.target.src='https://via.placeholder.com/32'}} 
+                  />
+                ) : (
+                  <Folder size={24} className="text-yellow-400" />
+                )}
+              </div>
+              
+              {/* نام آیتم */}
+              <span className="text-xs mt-2 text-center text-white truncate w-full">{item.name}</span>
 
-        {/* پاپ آپ توضیحات (فقط در حالت غیر ویرایش و بوک‌مارک) */}
-        {!isEditMode && item.type === 'bookmark' && (
-           <a href={item.url} target="_blank" className="absolute inset-0 z-10" title={item.desc} />
-        )}
+              {/* دکمه‌های ویرایش کوچک (فقط در حالت ویرایش) */}
+              {isEditMode && (
+                <div className="absolute top-0 right-0 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button 
+                    onClick={(e) => {
+                      e.preventDefault(); 
+                      e.stopPropagation(); 
+                      // منطق حذف آیتم باید در این تابع پیاده‌سازی شود
+                      alert(`حذف آیتم: ${item.name}. (لاجیک پیاده‌سازی نشده)`);
+                    }}
+                    className="text-red-400 bg-slate-800/80 rounded-full p-0.5"
+                    title="حذف"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              )}
+            </a>
+          );
+        })}
       </div>
-    ));
+    );
   };
 
+// ... (سایر کدها)
   return (
     <div className="min-h-screen bg-grid-pattern text-white pb-20">
       
