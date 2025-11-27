@@ -5,20 +5,27 @@
       "title": "بوکمارک‌ها",
       "x": 0,
       "y": 0,
-      "width": 2,
-      "height": 2,
+      "width": 300,
+      "height": 200,
       "items": [
         {
           "id": "1-1",
           "name": "جیمیل",
           "type": "link",
           "url": "https://gmail.com",
-          "icon": "fas fa-envelope",
-          "favicon": ""
+          "icon": "fas fa-envelope"
+        },
+        {
+          "id": "1-2", 
+          "name": "درایو",
+          "type": "link",
+          "url": "https://drive.google.com",
+          "icon": "fas fa-cloud"
         }
       ]
     }
   ],
-  "version": 1,
-  "lastModified": "2024-01-01T00:00:00.000Z"
+  "settings": {
+    "editMode": false
+  }
 }
