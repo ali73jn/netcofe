@@ -1,10 +1,9 @@
 class Dashboard {
     constructor() {
         this.dashboard = document.getElementById('dashboard');
-        this.currentCard = null;
         this.editMode = false;
-        this.draggedCard = null;
-        this.dragOffset = { x: 0, y: 0 };
+        this.data = { cards: [] };
+        this.dataVersion = 0;
         
         this.init();
     }
@@ -12,7 +11,7 @@ class Dashboard {
     async init() {
         await this.loadData();
         this.setupEventListeners();
-        this.renderCards();
+        this.renderDashboard();
         this.updateEditModeUI();
     }
 
@@ -22,27 +21,9 @@ class Dashboard {
             this.toggleEditMode();
         });
 
-        // دکمه افزودن کارت
-        document.getElementById('addCardBtn').addEventListener('click', () => {
-            this.showModal('cardModal');
-        });
-
-        // دکمه‌های مودال کارت
-        document.getElementById('createCardBtn').addEventListener('click', () => {
-            this.createCard();
-        });
-
-        document.getElementById('cancelCardBtn').addEventListener('click', () => {
-            this.hideModal('cardModal');
-        });
-
-        // دکمه‌های مودال آیتم
-        document.getElementById('createItemBtn').addEventListener('click', () => {
-            this.createItem();
-        });
-
-        document.getElementById('cancelItemBtn').addEventListener('click', () => {
-            this.hideModal('itemModal');
+        // دکمه مدیریت داده
+        document.getElementById('dataManagerBtn').addEventListener('click', () => {
+            this.showDataModal();
         });
 
         // مدیریت داده
@@ -58,8 +39,12 @@ class Dashboard {
             this.importData(e);
         });
 
+        document.getElementById('addCardBtn').addEventListener('click', () => {
+            this.addNewCard();
+        });
+
         document.getElementById('saveDataBtn').addEventListener('click', () => {
-            this.saveDataFromTextarea();
+            this.saveDataFromModal();
         });
 
         document.getElementById('closeDataBtn').addEventListener('click', () => {
@@ -75,136 +60,74 @@ class Dashboard {
     toggleEditMode() {
         this.editMode = !this.editMode;
         this.updateEditModeUI();
-        this.renderCards();
+        this.renderDashboard();
     }
 
     updateEditModeUI() {
         const editBtn = document.getElementById('editModeBtn');
-        const body = document.body;
         
         if (this.editMode) {
             editBtn.classList.add('active');
             editBtn.innerHTML = '<i class="fas fa-check"></i><span>اتمام ویرایش</span>';
-            body.classList.add('edit-mode');
+            document.body.classList.add('edit-mode');
         } else {
             editBtn.classList.remove('active');
             editBtn.innerHTML = '<i class="fas fa-edit"></i><span>ویرایش</span>';
-            body.classList.remove('edit-mode');
+            document.body.classList.remove('edit-mode');
         }
     }
 
     async loadData() {
         try {
-            const response = await fetch('data.json');
-            if (!response.ok) throw new Error('فایل داده یافت نشد');
-            
-            const data = await response.json();
-            this.data = data;
-            
-            // ذخیره در localStorage به عنوان پشتیبان
-            localStorage.setItem('dashboardData', JSON.stringify(data));
+            // سعی می‌کند از فایل data.json بارگذاری کند
+            const response = await fetch('data.json?version=' + Date.now());
+            if (response.ok) {
+                const fileData = await response.json();
+                const localData = localStorage.getItem('dashboardData');
+                
+                if (localData) {
+                    const parsedLocal = JSON.parse(localData);
+                    // اگر نسخه فایل جدیدتر است، از آن استفاده کن
+                    if (fileData.version > parsedLocal.version) {
+                        this.data = fileData;
+                    } else {
+                        this.data = parsedLocal;
+                    }
+                } else {
+                    this.data = fileData;
+                }
+            } else {
+                throw new Error('فایل داده یافت نشد');
+            }
         } catch (error) {
-            console.error('خطا در بارگذاری داده:', error);
-            // استفاده از داده‌های پیش‌فرض
-            this.data = {
-                cards: [],
-                settings: { editMode: false }
-            };
+            console.log('استفاده از داده‌های لوکال:', error);
+            // استفاده از داده‌های localStorage
+            const localData = localStorage.getItem('dashboardData');
+            if (localData) {
+                this.data = JSON.parse(localData);
+            } else {
+                // داده‌های پیش‌فرض
+                this.data = { cards: [], version: 1 };
+            }
         }
+        
+        // افزایش نسخه
+        this.data.version = (this.data.version || 0) + 1;
+        this.saveToLocalStorage();
     }
 
-    async saveData() {
-        // هم در فایل localStorage و هم در data.json ذخیره می‌شود
+    saveToLocalStorage() {
         localStorage.setItem('dashboardData', JSON.stringify(this.data));
-        
-        // در محیط واقعی، اینجا باید به سرور آپلود شود
-        // برای نمونه، نمایش داده می‌شود
-        this.showDataInModal();
     }
 
-    showModal(modalId) {
-        document.getElementById(modalId).style.display = 'block';
+    async saveToFile() {
+        // در محیط واقعی، اینجا فایل روی سرور ذخیره می‌شود
+        // برای نمونه، فقط در localStorage ذخیره می‌کنیم
+        this.saveToLocalStorage();
+        console.log('داده‌ها ذخیره شدند (در محیط واقعی در فایل data.json ذخیره می‌شوند)');
     }
 
-    hideModal(modalId) {
-        document.getElementById(modalId).style.display = 'none';
-        this.clearModalInputs();
-    }
-
-    clearModalInputs() {
-        document.getElementById('cardTitle').value = '';
-        document.getElementById('cardWidth').value = '300';
-        document.getElementById('cardHeight').value = '200';
-        document.getElementById('itemName').value = '';
-        document.getElementById('itemUrl').value = '';
-        document.getElementById('itemIcon').value = '';
-    }
-
-    createCard() {
-        const title = document.getElementById('cardTitle').value.trim();
-        const width = parseInt(document.getElementById('cardWidth').value) || 300;
-        const height = parseInt(document.getElementById('cardHeight').value) || 200;
-
-        if (!title) return;
-
-        const card = {
-            id: Date.now().toString(),
-            title: title,
-            x: this.getRandomPosition(50, 300),
-            y: this.getRandomPosition(50, 200),
-            width: width,
-            height: height,
-            items: []
-        };
-
-        this.data.cards.push(card);
-        this.saveData();
-        this.renderCards();
-        this.hideModal('cardModal');
-    }
-
-    getRandomPosition(min, max) {
-        return Math.floor(Math.random() * (max - min + 1)) + min;
-    }
-
-    showAddItemModal(cardId) {
-        if (!this.editMode) return;
-        
-        this.currentCard = cardId;
-        this.showModal('itemModal');
-    }
-
-    createItem() {
-        if (!this.currentCard) return;
-
-        const name = document.getElementById('itemName').value.trim();
-        const url = document.getElementById('itemUrl').value.trim();
-        const type = document.getElementById('itemType').value;
-        const icon = document.getElementById('itemIcon').value.trim() || 
-                    (type === 'folder' ? 'fas fa-folder' : 'fas fa-link');
-
-        if (!name) return;
-
-        const item = {
-            id: Date.now().toString(),
-            name: name,
-            type: type,
-            url: type === 'link' ? url : '',
-            icon: icon,
-            items: type === 'folder' ? [] : undefined
-        };
-
-        const card = this.data.cards.find(c => c.id === this.currentCard);
-        if (card) {
-            card.items.push(item);
-            this.saveData();
-            this.renderCards();
-        }
-
-        this.hideModal('itemModal');
-    }
-
-    renderCards() {
+    renderDashboard() {
         this.dashboard.innerHTML = '';
         this.data.cards.forEach(card => this.renderCard(card));
     }
@@ -212,21 +135,13 @@ class Dashboard {
     renderCard(card) {
         const cardElement = document.createElement('div');
         cardElement.className = 'card';
-        cardElement.style.left = card.x + 'px';
-        cardElement.style.top = card.y + 'px';
-        cardElement.style.width = card.width + 'px';
-        cardElement.style.height = card.height + 'px';
-        
         cardElement.innerHTML = `
             <div class="card-header">
                 <div class="card-title">${this.escapeHtml(card.title)}</div>
                 <div class="card-actions">
                     ${this.editMode ? `
-                        <button onclick="dashboard.showAddItemModal('${card.id}')" title="افزودن آیتم">
-                            <i class="fas fa-plus"></i>
-                        </button>
-                        <button onclick="dashboard.showDataModal()" title="مدیریت داده">
-                            <i class="fas fa-database"></i>
+                        <button onclick="dashboard.editCard('${card.id}')" title="ویرایش کارت">
+                            <i class="fas fa-edit"></i>
                         </button>
                         <button onclick="dashboard.deleteCard('${card.id}')" title="حذف کارت">
                             <i class="fas fa-trash"></i>
@@ -234,78 +149,31 @@ class Dashboard {
                     ` : ''}
                 </div>
             </div>
-            <div class="items-grid" id="items-${card.id}">
+            <div class="items-grid">
                 ${this.renderItems(card.items)}
             </div>
         `;
 
-        if (this.editMode) {
-            this.makeCardDraggable(cardElement, card);
-            this.makeCardResizable(cardElement, card);
-        }
-
         this.dashboard.appendChild(cardElement);
-    }
-
-    makeCardDraggable(cardElement, card) {
-        const header = cardElement.querySelector('.card-header');
-        
-        header.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            this.draggedCard = card;
-            this.dragOffset.x = e.clientX - cardElement.offsetLeft;
-            this.dragOffset.y = e.clientY - cardElement.offsetTop;
-
-            const mouseMoveHandler = (e) => {
-                if (this.draggedCard) {
-                    card.x = e.clientX - this.dragOffset.x;
-                    card.y = e.clientY - this.dragOffset.y;
-                    cardElement.style.left = card.x + 'px';
-                    cardElement.style.top = card.y + 'px';
-                }
-            };
-
-            const mouseUpHandler = () => {
-                this.draggedCard = null;
-                document.removeEventListener('mousemove', mouseMoveHandler);
-                document.removeEventListener('mouseup', mouseUpHandler);
-                this.saveData();
-            };
-
-            document.addEventListener('mousemove', mouseMoveHandler);
-            document.addEventListener('mouseup', mouseUpHandler);
-        });
-    }
-
-    makeCardResizable(cardElement, card) {
-        // برای سادگی، از قابلیت resize داخلی CSS استفاده می‌کنیم
-        // و موقعیت را ذخیره می‌کنیم
-        const observer = new ResizeObserver(entries => {
-            for (let entry of entries) {
-                card.width = entry.contentRect.width;
-                card.height = entry.contentRect.height;
-                this.saveData();
-            }
-        });
-
-        observer.observe(cardElement);
     }
 
     renderItems(items) {
         return items.map(item => `
             <div class="item ${item.type}" 
-                 onclick="dashboard.handleItemClick('${item.id}', '${item.type}', '${item.url}')">
+                 onclick="dashboard.handleItemClick(event, '${item.id}', '${item.type}', '${this.escapeHtml(item.url)}')">
                 <div class="item-icon">
-                    <i class="${item.icon}"></i>
+                    <i class="${item.icon || (item.type === 'folder' ? 'fas fa-folder' : 'fas fa-link')}"></i>
                 </div>
                 <div class="item-name">${this.escapeHtml(item.name)}</div>
             </div>
         `).join('');
     }
 
-    handleItemClick(itemId, type, url) {
+    handleItemClick(event, itemId, type, url) {
         if (this.editMode) {
+            event.preventDefault();
             // در حالت ویرایش، آیتم قابل ویرایش شود
+            this.editItem(itemId);
             return;
         }
 
@@ -313,46 +181,156 @@ class Dashboard {
             window.open(url, '_blank');
         } else if (type === 'folder') {
             // باز کردن پوشه
-            alert(`پوشه "${this.getItemName(itemId)}" باز شد`);
+            this.openFolder(itemId);
         }
     }
 
-    getItemName(itemId) {
+    editItem(itemId) {
+        // پیدا کردن آیتم
         for (let card of this.data.cards) {
             const item = card.items.find(i => i.id === itemId);
-            if (item) return item.name;
+            if (item) {
+                const newName = prompt('نام جدید:', item.name);
+                if (newName) {
+                    item.name = newName;
+                    this.saveToFile();
+                    this.renderDashboard();
+                }
+                break;
+            }
         }
-        return '';
+    }
+
+    openFolder(itemId) {
+        // پیاده‌سازی باز کردن پوشه
+        alert('قابلیت پوشه به زودی اضافه خواهد شد');
+    }
+
+    showDataModal() {
+        this.populateDataModal();
+        this.showModal('dataModal');
+    }
+
+    populateDataModal() {
+        // پر کردن لیست کارت‌ها
+        const cardsList = document.getElementById('cardsList');
+        cardsList.innerHTML = this.data.cards.map(card => `
+            <div class="card-item">
+                <div class="card-item-info">
+                    <div class="card-item-title">${this.escapeHtml(card.title)}</div>
+                    <div class="card-item-stats">
+                        ${card.items.length} آیتم - 
+                        ${card.items.filter(item => item.type === 'folder').length} پوشه
+                    </div>
+                </div>
+                <div class="card-item-actions">
+                    <button class="btn-edit" onclick="dashboard.editCard('${card.id}')">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-add-item" onclick="dashboard.addItemToCard('${card.id}')">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <button class="btn-delete" onclick="dashboard.deleteCardFromModal('${card.id}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+
+        // پر کردن textarea با JSON
+        document.getElementById('dataTextarea').value = JSON.stringify(this.data, null, 2);
+    }
+
+    addNewCard() {
+        const title = prompt('عنوان کارت جدید:');
+        if (title && title.trim()) {
+            const newCard = {
+                id: Date.now().toString(),
+                title: title.trim(),
+                items: []
+            };
+            this.data.cards.push(newCard);
+            this.saveToFile();
+            this.populateDataModal();
+            this.renderDashboard();
+        }
+    }
+
+    addItemToCard(cardId) {
+        const card = this.data.cards.find(c => c.id === cardId);
+        if (!card) return;
+
+        const name = prompt('نام آیتم:');
+        if (!name) return;
+
+        const type = confirm('آیا این آیتم یک پوشه است؟') ? 'folder' : 'link';
+        let url = '';
+        
+        if (type === 'link') {
+            url = prompt('آدرس سایت:', 'https://');
+            if (!url) return;
+        }
+
+        const icon = prompt('آیکون (اختیاری - مانند: fas fa-home):', 
+                           type === 'folder' ? 'fas fa-folder' : 'fas fa-link');
+
+        const newItem = {
+            id: Date.now().toString(),
+            name: name.trim(),
+            type: type,
+            url: url,
+            icon: icon || (type === 'folder' ? 'fas fa-folder' : 'fas fa-link')
+        };
+
+        card.items.push(newItem);
+        this.saveToFile();
+        this.populateDataModal();
+        this.renderDashboard();
+    }
+
+    editCard(cardId) {
+        const card = this.data.cards.find(c => c.id === cardId);
+        if (!card) return;
+
+        const newTitle = prompt('عنوان جدید کارت:', card.title);
+        if (newTitle && newTitle.trim()) {
+            card.title = newTitle.trim();
+            this.saveToFile();
+            this.populateDataModal();
+            this.renderDashboard();
+        }
     }
 
     deleteCard(cardId) {
         if (confirm('آیا از حذف این کارت مطمئنید؟')) {
             this.data.cards = this.data.cards.filter(card => card.id !== cardId);
-            this.saveData();
-            this.renderCards();
+            this.saveToFile();
+            this.renderDashboard();
         }
     }
 
-    showDataModal() {
-        this.showDataInModal();
-        this.showModal('dataModal');
+    deleteCardFromModal(cardId) {
+        this.deleteCard(cardId);
+        this.populateDataModal();
     }
 
-    showDataInModal() {
-        const textarea = document.getElementById('dataTextarea');
-        textarea.value = JSON.stringify(this.data, null, 2);
-    }
-
-    saveDataFromTextarea() {
+    saveDataFromModal() {
         try {
             const newData = JSON.parse(document.getElementById('dataTextarea').value);
+            
+            // اعتبارسنجی داده‌ها
+            if (!newData.cards || !Array.isArray(newData.cards)) {
+                throw new Error('فرمت داده‌ها نامعتبر است');
+            }
+
             this.data = newData;
-            this.saveData();
-            this.renderCards();
+            this.data.version = (this.data.version || 0) + 1;
+            this.saveToFile();
+            this.renderDashboard();
             this.hideModal('dataModal');
-            alert('داده‌ها با موفقیت به‌روزرسانی شدند!');
+            alert('داده‌ها با موفقیت ذخیره شدند!');
         } catch (error) {
-            alert('خطا در فرمت JSON! لطفاً بررسی کنید.');
+            alert('خطا در فرمت JSON! لطفاً ساختار داده را بررسی کنید.\n' + error.message);
         }
     }
 
@@ -364,7 +342,9 @@ class Dashboard {
         const a = document.createElement('a');
         a.href = url;
         a.download = 'dashboard-data.json';
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
         
         URL.revokeObjectURL(url);
     }
@@ -377,37 +357,52 @@ class Dashboard {
         reader.onload = (e) => {
             try {
                 const newData = JSON.parse(e.target.result);
+                
+                // اعتبارسنجی
+                if (!newData.cards || !Array.isArray(newData.cards)) {
+                    throw new Error('فرمت فایل نامعتبر است');
+                }
+
                 this.data = newData;
-                this.saveData();
-                this.renderCards();
+                this.data.version = (this.data.version || 0) + 1;
+                this.saveToFile();
+                this.renderDashboard();
+                this.populateDataModal();
                 alert('داده‌ها با موفقیت وارد شدند!');
+                
+                // ریست فایل input
+                event.target.value = '';
             } catch (error) {
-                alert('خطا در خواندن فایل! لطفاً فرمت JSON را بررسی کنید.');
+                alert('خطا در خواندن فایل! لطفاً فرمت JSON را بررسی کنید.\n' + error.message);
             }
         };
         reader.readAsText(file);
     }
 
     searchItems(query) {
-        const cards = this.data.cards;
+        const cards = this.dashboard.querySelectorAll('.card');
         
         cards.forEach(card => {
-            const cardElement = document.querySelector(`[style*="left: ${card.x}px"][style*="top: ${card.y}px"]`);
-            if (cardElement) {
-                const items = cardElement.querySelectorAll('.item');
-                let hasVisibleItems = false;
+            const items = card.querySelectorAll('.item');
+            let hasVisibleItems = false;
 
-                items.forEach(item => {
-                    const itemName = item.querySelector('.item-name').textContent;
-                    const isVisible = itemName.includes(query);
-                    item.style.display = isVisible ? 'flex' : 'none';
-                    if (isVisible) hasVisibleItems = true;
-                });
+            items.forEach(item => {
+                const itemName = item.querySelector('.item-name').textContent.toLowerCase();
+                const isVisible = itemName.includes(query.toLowerCase());
+                item.style.display = isVisible ? 'flex' : 'none';
+                if (isVisible) hasVisibleItems = true;
+            });
 
-                // نمایش/مخفی کردن کارت بر اساس نتیجه جستجو
-                cardElement.style.display = hasVisibleItems || !query ? 'block' : 'none';
-            }
+            card.style.display = hasVisibleItems || !query ? 'block' : 'none';
         });
+    }
+
+    showModal(modalId) {
+        document.getElementById(modalId).style.display = 'block';
+    }
+
+    hideModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
     }
 
     escapeHtml(unsafe) {
@@ -420,8 +415,15 @@ class Dashboard {
     }
 }
 
-// راه اندازی دشبورد وقتی صفحه لود شد
+// راه اندازی دشبورد
 let dashboard;
 document.addEventListener('DOMContentLoaded', () => {
     dashboard = new Dashboard();
+    
+    // چک کردن تغییرات در فایل data.json هر 30 ثانیه
+    setInterval(() => {
+        dashboard.loadData().then(() => {
+            dashboard.renderDashboard();
+        });
+    }, 30000);
 });

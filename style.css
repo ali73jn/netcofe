@@ -4,6 +4,14 @@
     box-sizing: border-box;
 }
 
+:root {
+    --card-width: 280px;
+    --card-min-height: 200px;
+    --grid-gap: 20px;
+    --header-height: 80px;
+    --sidebar-width: 60px;
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -16,18 +24,16 @@ body.edit-mode {
     background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
 }
 
-body.edit-mode .card {
-    border: 2px dashed #ff6b6b;
-}
-
+/* هدر */
 header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 30px;
-    background: rgba(255, 255, 255, 0.1);
-    padding: 15px 20px;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 15px 25px;
     border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     backdrop-filter: blur(10px);
 }
 
@@ -35,15 +41,22 @@ header {
     display: flex;
     align-items: center;
     background: rgba(255, 255, 255, 0.9);
-    padding: 10px 15px;
+    padding: 10px 20px;
     border-radius: 25px;
     flex-grow: 1;
-    margin-left: 15px;
+    margin-left: 20px;
+    border: 2px solid #e0e0e0;
+    transition: all 0.3s ease;
+}
+
+.search-bar:focus-within {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .search-bar i {
     color: #666;
-    margin-left: 8px;
+    margin-left: 10px;
 }
 
 .search-bar input {
@@ -52,98 +65,97 @@ header {
     background: none;
     width: 100%;
     font-size: 16px;
+    color: #333;
 }
 
 .header-buttons {
     display: flex;
-    gap: 10px;
+    gap: 15px;
     align-items: center;
 }
 
-.edit-btn {
-    background: #ff9800;
+.edit-btn, .data-btn {
+    background: #4CAF50;
     color: white;
     border: none;
-    padding: 10px 15px;
+    padding: 12px 20px;
     border-radius: 25px;
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 8px;
     transition: all 0.3s ease;
+    font-size: 14px;
+    font-weight: 500;
 }
 
-.edit-btn:hover {
-    background: #f57c00;
+.edit-btn:hover, .data-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
 .edit-btn.active {
-    background: #4caf50;
+    background: #f44336;
 }
 
-.add-btn {
-    background: #4CAF50;
-    color: white;
-    border: none;
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    font-size: 20px;
-    cursor: pointer;
-    transition: all 0.3s ease;
+.data-btn {
+    background: #2196F3;
 }
 
-.add-btn:hover {
-    background: #45a049;
-    transform: scale(1.1);
-}
-
+/* دشبورد و Grid */
 .dashboard {
-    position: relative;
-    min-height: 500px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(var(--card-width), 1fr));
+    gap: var(--grid-gap);
+    align-items: start;
 }
 
+/* کارت‌ها */
 .card {
     background: rgba(255, 255, 255, 0.95);
     border-radius: 15px;
     padding: 20px;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
     transition: all 0.3s ease;
-    position: absolute;
-    resize: both;
-    overflow: hidden;
-    min-width: 200px;
-    min-height: 150px;
+    min-height: var(--card-min-height);
+    border: 2px solid transparent;
 }
 
 .card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+    transform: translateY(-5px);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
 }
 
 body.edit-mode .card {
-    cursor: move;
+    border: 2px dashed #ff6b6b;
+    background: rgba(255, 255, 255, 0.85);
 }
 
 .card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid #eee;
-    cursor: move;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #f0f0f0;
 }
 
 .card-title {
     font-size: 18px;
     font-weight: bold;
     color: #333;
+    flex-grow: 1;
 }
 
 .card-actions {
     display: flex;
-    gap: 5px;
+    gap: 8px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+body.edit-mode .card-actions {
+    opacity: 1;
 }
 
 .card-actions button {
@@ -152,7 +164,7 @@ body.edit-mode .card {
     cursor: pointer;
     color: #666;
     font-size: 14px;
-    padding: 5px;
+    padding: 6px;
     border-radius: 5px;
     transition: all 0.3s ease;
 }
@@ -162,12 +174,11 @@ body.edit-mode .card {
     color: #333;
 }
 
+/* آیتم‌ها */
 .items-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
     gap: 15px;
-    height: calc(100% - 50px);
-    overflow-y: auto;
 }
 
 .item {
@@ -176,9 +187,10 @@ body.edit-mode .card {
     align-items: center;
     text-align: center;
     cursor: pointer;
-    padding: 10px 5px;
+    padding: 12px 8px;
     border-radius: 10px;
     transition: all 0.3s ease;
+    position: relative;
 }
 
 .item:hover {
@@ -186,15 +198,30 @@ body.edit-mode .card {
     transform: scale(1.05);
 }
 
+body.edit-mode .item:hover::after {
+    content: '✏️';
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    background: #ffeb3b;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .item-icon {
-    width: 40px;
-    height: 40px;
+    width: 45px;
+    height: 45px;
     background: linear-gradient(135deg, #667eea, #764ba2);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     color: white;
     font-size: 18px;
 }
@@ -206,8 +233,9 @@ body.edit-mode .card {
 .item-name {
     font-size: 12px;
     color: #333;
-    line-height: 1.3;
+    line-height: 1.4;
     word-break: break-word;
+    max-width: 70px;
 }
 
 /* مودال‌ها */
@@ -218,7 +246,7 @@ body.edit-mode .card {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(5px);
     z-index: 1000;
 }
@@ -230,131 +258,254 @@ body.edit-mode .card {
     transform: translate(-50%, -50%);
     background: white;
     padding: 30px;
-    border-radius: 15px;
+    border-radius: 20px;
     width: 90%;
-    max-width: 500px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
 }
 
 .modal-content h3 {
-    margin-bottom: 20px;
+    margin-bottom: 25px;
     color: #333;
     text-align: center;
+    font-size: 24px;
+    border-bottom: 3px solid #667eea;
+    padding-bottom: 10px;
 }
 
-.modal-content input,
-.modal-content select,
-.modal-content textarea {
-    width: 100%;
-    padding: 12px;
-    margin-bottom: 15px;
-    border: 2px solid #ddd;
-    border-radius: 8px;
-    font-size: 16px;
-    transition: border-color 0.3s ease;
+.modal-content h4 {
+    margin: 20px 0 15px 0;
+    color: #555;
+    font-size: 18px;
 }
 
-.modal-content input:focus,
-.modal-content select:focus,
-.modal-content textarea:focus {
-    outline: none;
-    border-color: #667eea;
-}
-
-.size-inputs {
-    display: flex;
-    gap: 15px;
-    margin-bottom: 15px;
-}
-
-.size-inputs label {
-    flex: 1;
-    font-size: 14px;
-    color: #666;
-}
-
-.size-inputs input {
-    width: 80px;
-    margin-right: 5px;
-}
-
+/* دکمه‌های action */
 .data-actions {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 25px;
 }
 
-.data-actions button {
-    flex: 1;
-    padding: 10px;
-    border: none;
-    border-radius: 8px;
+.action-btn {
     background: #2196F3;
     color: white;
-    cursor: pointer;
-    transition: background 0.3s ease;
-}
-
-.data-actions button:hover {
-    background: #1976D2;
-}
-
-.modal-buttons {
-    display: flex;
-    gap: 10px;
-}
-
-.modal-buttons button {
-    flex: 1;
-    padding: 12px;
     border: none;
-    border-radius: 8px;
-    font-size: 16px;
+    padding: 15px;
+    border-radius: 12px;
     cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    font-size: 14px;
+}
+
+.action-btn:hover {
+    background: #1976D2;
+    transform: translateY(-2px);
+}
+
+.action-btn i {
+    font-size: 20px;
+}
+
+/* مدیریت کارت‌ها */
+.cards-management {
+    margin: 25px 0;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    border: 2px dashed #ddd;
+}
+
+.card-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: white;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    border: 2px solid #e0e0e0;
     transition: all 0.3s ease;
 }
 
-#createCardBtn,
-#createItemBtn,
-#saveDataBtn {
-    background: #4CAF50;
+.card-item:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.card-item-info {
+    flex-grow: 1;
+}
+
+.card-item-title {
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.card-item-stats {
+    font-size: 12px;
+    color: #666;
+}
+
+.card-item-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.card-item-actions button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    transition: all 0.3s ease;
+}
+
+.btn-edit {
+    background: #ffc107;
     color: white;
 }
 
-#createCardBtn:hover,
-#createItemBtn:hover,
-#saveDataBtn:hover {
-    background: #45a049;
+.btn-edit:hover {
+    background: #ffa000;
 }
 
-#cancelCardBtn,
-#cancelItemBtn,
-#closeDataBtn {
+.btn-delete {
     background: #f44336;
     color: white;
 }
 
-#cancelCardBtn:hover,
-#cancelItemBtn:hover,
-#closeDataBtn:hover {
-    background: #da190b;
+.btn-delete:hover {
+    background: #d32f2f;
+}
+
+.btn-add-item {
+    background: #4CAF50;
+    color: white;
+}
+
+.btn-add-item:hover {
+    background: #45a049;
+}
+
+/* ویرایشگر JSON */
+.json-editor {
+    margin: 20px 0;
+}
+
+.json-editor textarea {
+    width: 100%;
+    height: 200px;
+    padding: 15px;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.4;
+    resize: vertical;
+    transition: border-color 0.3s ease;
+}
+
+.json-editor textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* دکمه‌های مودال */
+.modal-buttons {
+    display: flex;
+    gap: 15px;
+    margin-top: 25px;
+}
+
+.save-btn, .cancel-btn {
+    flex: 1;
+    padding: 15px;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.save-btn {
+    background: #4CAF50;
+    color: white;
+}
+
+.save-btn:hover {
+    background: #45a049;
+    transform: translateY(-2px);
+}
+
+.cancel-btn {
+    background: #757575;
+    color: white;
+}
+
+.cancel-btn:hover {
+    background: #616161;
+    transform: translateY(-2px);
 }
 
 /* اسکرول بار */
-.items-grid::-webkit-scrollbar {
-    width: 6px;
+.modal-content::-webkit-scrollbar {
+    width: 8px;
 }
 
-.items-grid::-webkit-scrollbar-track {
+.modal-content::-webkit-scrollbar-track {
     background: #f1f1f1;
-    border-radius: 3px;
+    border-radius: 4px;
 }
 
-.items-grid::-webkit-scrollbar-thumb {
+.modal-content::-webkit-scrollbar-thumb {
     background: #c1c1c1;
-    border-radius: 3px;
+    border-radius: 4px;
 }
 
-.items-grid::-webkit-scrollbar-thumb:hover {
+.modal-content::-webkit-scrollbar-thumb:hover {
     background: #a8a8a8;
+}
+
+/* رسپانسیو */
+@media (max-width: 768px) {
+    .dashboard {
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 15px;
+    }
+    
+    header {
+        flex-direction: column;
+        gap: 15px;
+        padding: 15px;
+    }
+    
+    .search-bar {
+        margin-left: 0;
+        width: 100%;
+    }
+    
+    .header-buttons {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .data-actions {
+        grid-template-columns: 1fr;
+    }
+    
+    .modal-content {
+        width: 95%;
+        padding: 20px;
+    }
 }

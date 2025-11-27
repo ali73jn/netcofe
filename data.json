@@ -3,10 +3,6 @@
     {
       "id": "1",
       "title": "بوکمارک‌ها",
-      "x": 0,
-      "y": 0,
-      "width": 300,
-      "height": 200,
       "items": [
         {
           "id": "1-1",
@@ -16,16 +12,26 @@
           "icon": "fas fa-envelope"
         },
         {
-          "id": "1-2", 
-          "name": "درایو",
+          "id": "1-2",
+          "name": "درایو", 
           "type": "link",
           "url": "https://drive.google.com",
           "icon": "fas fa-cloud"
         }
       ]
+    },
+    {
+      "id": "2", 
+      "title": "ابزارها",
+      "items": [
+        {
+          "id": "2-1",
+          "name": "گیت‌هاب",
+          "type": "link",
+          "url": "https://github.com",
+          "icon": "fab fa-github"
+        }
+      ]
     }
-  ],
-  "settings": {
-    "editMode": false
-  }
+  ]
 }
