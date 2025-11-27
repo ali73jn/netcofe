@@ -1,304 +1,664 @@
-<!-- index.html - Single-file React app for bookmark dashboard
-     Code is in English. UI text and instructions in Persian will be provided in chat.
-     Uses React (UMD), Babel, interact.js for drag/resize.
--->
-
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Cafe Dashboard - Bookmarks</title>
-  <style>
-    /* Basic reset */
-    *{box-sizing:border-box;margin:0;padding:0}
-    html,body,#root{height:100%}
-    body{font-family:Inter, system-ui, sans-serif;background:#f2f6fb;color:#0f172a}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مدیریت بوکمارک</title>
+    <style>
+        /* Reset و فونت‌ها */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
 
-    /* Top bar */
-    .topbar{height:64px;display:flex;align-items:center;gap:12px;padding:0 16px;background:rgba(255,255,255,0.6);backdrop-filter:blur(6px);box-shadow:0 2px 6px rgba(15,23,42,0.06)}
-    .topbar .left{display:flex;gap:8px;align-items:center}
-    .btn{padding:8px 10px;border-radius:8px;background:transparent;border:1px solid rgba(15,23,42,0.06);cursor:pointer}
-    .icon{width:20px;height:20px;display:inline-block}
-    .search{margin-left:8px;padding:6px 8px;border-radius:8px;border:1px solid rgba(15,23,42,0.08);min-width:220px}
+        :root {
+            --primary-color: #6366f1;
+            --secondary-color: #8b5cf6;
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            --spacing: 20px;
+        }
 
-    /* Main area */
-    .app{display:flex;flex-direction:column;height:calc(100% - 64px)}
-    .stage{flex:1;position:relative;padding:16px;overflow:auto}
-    .grid{position:relative;width:100%;min-height:400px;background-image:linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px), linear-gradient(0deg, rgba(0,0,0,0.02) 1px, transparent 1px);background-size:120px 120px;}
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            background-image: url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1" fill="rgba(255,255,255,0.1)"/></svg>');
+            background-size: 20px 20px;
+        }
 
-    /* Card style (glassmorphism) */
-    .card{position:absolute;border-radius:12px;padding:10px;background:linear-gradient(180deg, rgba(255,255,255,0.7), rgba(255,255,255,0.55));box-shadow:0 6px 18px rgba(15,23,42,0.08);border:1px solid rgba(255,255,255,0.5);backdrop-filter: blur(6px);overflow:hidden}
-    .card .header{display:flex;align-items:center;justify-content:space-between;gap:8px}
-    .card .title{font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px}
-    .card .actions{display:flex;gap:6px}
-    .small{font-size:12px;padding:6px;border-radius:8px}
-    .bookmark-list{margin-top:8px;display:flex;flex-direction:column;gap:6px;max-height:240px;overflow:auto}
-    .bookmark{display:flex;align-items:center;gap:8px;padding:6px;border-radius:8px;background:rgba(255,255,255,0.45);cursor:pointer}
-    .bookmark img{width:28px;height:28px;border-radius:6px}
-    .popup{position:fixed;padding:8px 10px;border-radius:8px;background:#0f172a;color:#fff;z-index:9999;box-shadow:0 8px 24px rgba(2,6,23,0.6)}
+        /* هدر */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 15px 25px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow);
+        }
 
-    /* Resize handles (small squares) */
-    .handle{width:10px;height:10px;background:rgba(15,23,42,0.12);position:absolute;border-radius:3px}
-    .handle.br{right:6px;bottom:6px;cursor:se-resize}
+        .header-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
 
-    /* Search results */
-    .search-results{position:absolute;top:64px;left:16px;background:#fff;border-radius:8px;box-shadow:0 10px 30px rgba(2,6,23,0.08);max-height:320px;overflow:auto;padding:8px;min-width:300px;z-index:40}
-    .sr-item{padding:8px;border-bottom:1px solid rgba(0,0,0,0.04);cursor:pointer}
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background: var(--primary-color);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
 
-    /* Minimal responsiveness */
-    @media(max-width:720px){.search{min-width:120px}}
-  </style>
+        .btn:hover {
+            background: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+        }
+
+        .mode-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+            font-weight: 500;
+        }
+
+        /* گرید اصلی */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: var(--spacing);
+            padding: 10px;
+        }
+
+        /* کارت‌ها */
+        .card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            border-radius: 15px;
+            border: 1px solid var(--glass-border);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            min-height: 200px;
+            position: relative;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .card-title {
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .card-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 5px;
+            transition: background 0.3s ease;
+        }
+
+        .icon-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* آیتم‌های داخل کارت */
+        .card-content {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .bookmark-item, .folder-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .bookmark-item:hover, .folder-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .item-name {
+            font-weight: 500;
+            flex: 1;
+        }
+
+        .item-url {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-bottom: 5px;
+            direction: ltr;
+            text-align: left;
+        }
+
+        .item-description {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        /* مودال‌ها */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 15px;
+            padding: 30px;
+            width: 90%;
+            max-width: 500px;
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            color: white;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            color: white;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            backdrop-filter: blur(10px);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        /* حالت ویرایش */
+        .edit-mode .card {
+            cursor: move;
+        }
+
+        .edit-mode .resize-handle {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            width: 15px;
+            height: 15px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            cursor: nw-resize;
+        }
+
+        /* جستجو */
+        .search-container {
+            position: relative;
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 40px 10px 15px;
+            border-radius: 25px;
+            border: 1px solid var(--glass-border);
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            backdrop-filter: blur(10px);
+        }
+
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: white;
+        }
+    </style>
 </head>
 <body>
-  <div id="root"></div>
-
-  <!-- Dependencies: React UMD, ReactDOM UMD, Babel for JSX, interact.js for drag/resize -->
-  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <script src="https://unpkg.com/interactjs/dist/interact.min.js"></script>
-  <script src="https://unpkg.com/uuid@9.0.0/dist/umd/uuidv4.min.js"></script>
-  <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
-
-  <script type="text/babel">
-  const {useState,useEffect,useRef} = React;
-  const {v4: uuidv4} = uuid;
-
-  // Utility: get favicon by site URL
-  function faviconFor(url){
-    try{
-      const u = new URL(url);
-      return `https://www.google.com/s2/favicons?domain=${u.hostname}`;
-    }catch(e){
-      return '';
-    }
-  }
-
-  // Default demo data
-  const defaultData = {
-    settings:{background:'',gridSize:120},
-    cards:[
-      {id:uuidv4(),name:'Favorites',x:20,y:20,w:360,h:220,bookmarks:[
-        {id:uuidv4(),name:'Google',url:'https://www.google.com',desc:'Search engine',icon:faviconFor('https://www.google.com')},
-        {id:uuidv4(),name:'MDN',url:'https://developer.mozilla.org',desc:'Docs',icon:faviconFor('https://developer.mozilla.org')}
-      ]}
-    ]
-  };
-
-  function useLocalStorageState(key, initial){
-    const [state,setState] = useState(()=>{
-      try{const s = localStorage.getItem(key); return s?JSON.parse(s):initial}catch(e){return initial}
-    });
-    useEffect(()=>{localStorage.setItem(key,JSON.stringify(state));},[key,state]);
-    return [state,setState];
-  }
-
-  function App(){
-    const [data,setData] = useLocalStorageState('cafe:data', defaultData);
-    const [editMode,setEditMode] = useLocalStorageState('cafe:edit', false);
-    const [searchTerm,setSearchTerm] = useState('');
-    const [searchResults,setSearchResults] = useState([]);
-    const stageRef = useRef(null);
-    const popupRef = useRef({timeout:null,el:null});
-
-    // Initialize interact for existing cards when rendered
-    useEffect(()=>{
-      // cleanup previous interactions
-      interact('.draggable').unset();
-
-      data.cards.forEach(card=>{
-        const selector = `#card-${card.id}`;
-
-        interact(selector)
-          .draggable({enabled:editMode, listeners:{move(event){
-              const id = event.target.dataset.id;
-              const dx = event.dx; const dy = event.dy;
-              setData(prev=>{
-                const clone = JSON.parse(JSON.stringify(prev));
-                const c = clone.cards.find(x=>x.id===id);
-                if(c){ c.x = Math.max(0, c.x + dx); c.y = Math.max(0, c.y + dy); }
-                return clone;
-              });
-          }}})
-          .resizable({edges:{bottom:true,right:true},enabled:editMode,listeners:{move(event){
-              const id = event.target.dataset.id;
-              const dw = event.deltaRect.width; const dh = event.deltaRect.height;
-              setData(prev=>{
-                const clone = JSON.parse(JSON.stringify(prev));
-                const c = clone.cards.find(x=>x.id===id);
-                if(c){ c.w = Math.max(120, c.w + dw); c.h = Math.max(80, c.h + dh); }
-                return clone;
-              });
-          }}});
-      });
-    },[data.cards.length, editMode]);
-
-    // Search
-    useEffect(()=>{
-      if(!searchTerm) return setSearchResults([]);
-      const q = searchTerm.toLowerCase();
-      const results = [];
-      data.cards.forEach(card=>{
-        card.bookmarks?.forEach(b=>{
-          if((b.name||'').toLowerCase().includes(q) || (b.desc||'').toLowerCase().includes(q)){
-            results.push({cardId:card.id,bookmark:b});
-          }
-        });
-      });
-      setSearchResults(results);
-    },[searchTerm,data]);
-
-    // Add card
-    function addCard(){
-      const newCard = {id:uuidv4(),name:'New Card',x:20,y:20,w:300,h:180,bookmarks:[]};
-      setData(prev=>({...prev, cards:[...prev.cards,newCard]}));
-    }
-
-    // Add bookmark to a card
-    function addBookmark(cardId){
-      const url = prompt('Bookmark URL (full):');
-      if(!url) return; const name = prompt('Name for bookmark:', url.replace(/^https?:\/\//,'')) || url;
-      const desc = prompt('Description (optional):','') || '';
-      const bm = {id:uuidv4(),name, url, desc, icon: faviconFor(url)};
-      setData(prev=>{
-        const clone = JSON.parse(JSON.stringify(prev));
-        const card = clone.cards.find(c=>c.id===cardId);
-        card.bookmarks.push(bm);
-        return clone;
-      });
-    }
-
-    // Add folder (implemented as a nested bookmark with type folder flag)
-    function addFolder(cardId){
-      const name = prompt('Folder name:','New Folder');
-      if(!name) return;
-      const folder = {id:uuidv4(),name,folder:true,bookmarks:[]};
-      setData(prev=>{
-        const clone = JSON.parse(JSON.stringify(prev));
-        const card = clone.cards.find(c=>c.id===cardId);
-        card.bookmarks.push(folder);
-        return clone;
-      });
-    }
-
-    function renameCard(cardId){
-      const name = prompt('New card name:'); if(name==null) return;
-      setData(prev=>{const clone=JSON.parse(JSON.stringify(prev));const c=clone.cards.find(x=>x.id===cardId);if(c) c.name=name;return clone;});
-    }
-
-    function deleteCard(cardId){ if(!confirm('Delete this card?')) return; setData(prev=>({...prev,cards:prev.cards.filter(x=>x.id!==cardId)})); }
-
-    function deleteBookmark(cardId,bmId){ if(!confirm('Delete this bookmark?')) return; setData(prev=>{const clone=JSON.parse(JSON.stringify(prev));const c=clone.cards.find(x=>x.id===cardId); if(c) c.bookmarks = c.bookmarks.filter(b=>b.id!==bmId); return clone;}); }
-
-    function editBookmark(cardId,bm){
-      const name = prompt('Name:', bm.name); if(name==null) return; const url = prompt('URL:', bm.url); if(url==null) return; const desc = prompt('Description:', bm.desc || '');
-      setData(prev=>{const clone=JSON.parse(JSON.stringify(prev)); const c=clone.cards.find(x=>x.id===cardId); const b=c.bookmarks.find(x=>x.id===bm.id); b.name=name; b.url=url; b.desc=desc; b.icon=faviconFor(url); return clone;});
-    }
-
-    // Download DB
-    function downloadDB(){
-      const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
-      const ts = new Date().toISOString().replaceAll(':','-').replaceAll('.','-');
-      const name = `cafe-data-${ts}.json`;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-    }
-
-    // Upload DB
-    function uploadDB(file){
-      if(!file) return;
-      const reader = new FileReader();
-      reader.onload = e=>{
-        try{
-          const parsed = JSON.parse(e.target.result);
-          if(!confirm('Apply uploaded database and replace current layout?')) return;
-          setData(parsed);
-        }catch(er){alert('Invalid JSON file');}
-      };
-      reader.readAsText(file);
-    }
-
-    // Hover popup for bookmark (1s hold)
-    function startHover(e, bookmark){
-      const el = e.currentTarget;
-      popupRef.current.timeout = setTimeout(()=>{
-        const r = el.getBoundingClientRect();
-        const popup = document.createElement('div'); popup.className='popup'; popup.innerText = bookmark.desc || '(no description)';
-        document.body.appendChild(popup);
-        popup.style.left = (r.right + 8) + 'px'; popup.style.top = (r.top) + 'px'; popupRef.current.el = popup;
-      }, 900);
-    }
-    function cancelHover(){ clearTimeout(popupRef.current.timeout); if(popupRef.current.el){ popupRef.current.el.remove(); popupRef.current.el = null; } }
-
-    return (
-      <div className="container">
-        <div className="topbar">
-          <div className="left">
-            <button className="btn" onClick={()=>setEditMode(m=>!m)}>{editMode? 'Exit Edit':'Edit'}</button>
-            <button className="btn" onClick={addCard}>+</button>
-            <button className="btn" onClick={downloadDB}>Database</button>
-            <input className="search" placeholder="Search bookmarks..." value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} />
-            <input type="file" style={{display:'none'}} id="upload-db" onChange={e=>uploadDB(e.target.files[0])} />
-          </div>
-          <div style={{marginLeft:'auto'}}>
-            <button className="btn" onClick={()=>{document.getElementById('upload-db').click();}}>Upload DB</button>
-            <button className="btn" onClick={()=>{localStorage.removeItem('cafe:data'); location.reload();}}>Reset</button>
-          </div>
+    <!-- هدر -->
+    <header class="header">
+        <div class="search-container">
+            <input type="text" class="search-input" placeholder="جستجو در بوکمارک‌ها...">
+            <span class="search-icon">🔍</span>
         </div>
-
-        <div className="app">
-          <div className="stage" ref={stageRef}>
-            {searchResults.length>0 && (
-              <div className="search-results">
-                {searchResults.map(r=> (
-                  <div key={r.bookmark.id} className="sr-item" onClick={()=>{ alert(`Go to ${r.bookmark.url}`); }}>
-                    <div style={{fontWeight:600}}>{r.bookmark.name}</div>
-                    <div style={{fontSize:12,color:'#475569'}}>{r.bookmark.url}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="grid">
-              {data.cards.map(card=> (
-                <div key={card.id} id={`card-${card.id}`} data-id={card.id} className={`card draggable`} style={{left:card.x+'px', top:card.y+'px', width:card.w+'px', height:card.h+'px'}}>
-                  <div className="header">
-                    <div className="title">{card.name}</div>
-                    <div className="actions">
-                      <button className="small" onClick={()=>renameCard(card.id)}>Rename</button>
-                      <button className="small" onClick={()=>addBookmark(card.id)}>+BM</button>
-                      <button className="small" onClick={()=>addFolder(card.id)}>+Folder</button>
-                      <button className="small" onClick={()=>deleteCard(card.id)}>Delete</button>
-                    </div>
-                  </div>
-
-                  <div className="bookmark-list">
-                    {card.bookmarks.map(b=> (
-                      <div key={b.id} className="bookmark" onMouseDown={(e)=>{}} onMouseEnter={(e)=>startHover(e,b)} onMouseLeave={cancelHover} onClick={()=>{ if(b.folder){ const newName = prompt('Open folder - rename? (cancel to keep) ', b.name); if(newName) setData(prev=>{ const clone=JSON.parse(JSON.stringify(prev)); const c=clone.cards.find(x=>x.id===card.id); const bi=c.bookmarks.find(x=>x.id===b.id); bi.name=newName; return clone; }); } else { window.open(b.url,'_blank'); } }}>
-                        {b.icon ? <img src={b.icon} alt="icon"/> : <div style={{width:28,height:28,background:'#e2e8f0'}}/>}
-                        <div style={{flex:1}}>
-                          <div style={{fontSize:13,fontWeight:600}}>{b.name}</div>
-                          <div style={{fontSize:12,color:'#475569'}}>{b.url || (b.folder? 'Folder' : '')}</div>
-                        </div>
-                        <div style={{display:'flex',gap:6}}>
-                          {!b.folder && <button className="small" onClick={(e)=>{e.stopPropagation(); editBookmark(card.id,b);}}>Edit</button>}
-                          <button className="small" onClick={(e)=>{e.stopPropagation(); deleteBookmark(card.id,b.id);}}>Del</button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {editMode && <div className="handle br" />}
-                </div>
-              ))}
+        
+        <div class="header-controls">
+            <div class="mode-toggle">
+                <span>حالت مشاهده</span>
+                <label class="switch">
+                    <input type="checkbox" id="editModeToggle">
+                    <span class="slider"></span>
+                </label>
+                <span>حالت ویرایش</span>
             </div>
-          </div>
+            <button class="btn" id="addCardBtn">+ کارت جدید</button>
+            <button class="btn btn-secondary" id="databaseBtn">مدیریت دیتابیس</button>
         </div>
-      </div>
-    );
-  }
+    </header>
 
-  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-  </script>
+    <!-- محتوای اصلی -->
+    <main>
+        <div class="grid-container" id="cardsContainer">
+            <!-- کارت‌ها اینجا ساخته می‌شوند -->
+        </div>
+    </main>
+
+    <!-- مودال افزودن کارت -->
+    <div class="modal" id="addCardModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>افزودن کارت جدید</h3>
+                <button class="close-btn">&times;</button>
+            </div>
+            <form id="addCardForm">
+                <div class="form-group">
+                    <label for="cardName">نام کارت</label>
+                    <input type="text" id="cardName" required>
+                </div>
+                <button type="submit" class="btn">ایجاد کارت</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- مودال افزودن بوکمارک -->
+    <div class="modal" id="addBookmarkModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>افزودن بوکمارک جدید</h3>
+                <button class="close-btn">&times;</button>
+            </div>
+            <form id="addBookmarkForm">
+                <div class="form-group">
+                    <label for="bookmarkName">نام</label>
+                    <input type="text" id="bookmarkName" required>
+                </div>
+                <div class="form-group">
+                    <label for="bookmarkUrl">آدرس</label>
+                    <input type="url" id="bookmarkUrl" required>
+                </div>
+                <div class="form-group">
+                    <label for="bookmarkDescription">توضیحات</label>
+                    <textarea id="bookmarkDescription"></textarea>
+                </div>
+                <button type="submit" class="btn">افزودن بوکمارک</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- مودال مدیریت دیتابیس -->
+    <div class="modal" id="databaseModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>مدیریت دیتابیس</h3>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button class="btn" id="downloadBtn">دانلود دیتابیس</button>
+                <button class="btn btn-secondary" id="uploadBtn">آپلود دیتابیس</button>
+            </div>
+            <input type="file" id="fileInput" accept=".json" style="display: none;">
+        </div>
+    </div>
+
+    <script>
+        // دیتابیس نمونه
+        let database = {
+            version: "1.0",
+            settings: {
+                background: "default",
+                gridSize: 20
+            },
+            cards: [
+                {
+                    id: "card_1",
+                    name: "کارت نمونه",
+                    position: { x: 0, y: 0 },
+                    size: { width: 300, height: 250 },
+                    items: [
+                        {
+                            type: "bookmark",
+                            id: "bm_1",
+                            name: "گوگل",
+                            url: "https://google.com",
+                            description: "موتور جستجوی گوگل",
+                            favicon: ""
+                        }
+                    ]
+                }
+            ]
+        };
+
+        // ذخیره در localStorage
+        function saveDatabase() {
+            localStorage.setItem('bookmarkManagerDB', JSON.stringify(database));
+        }
+
+        // بارگذاری از localStorage
+        function loadDatabase() {
+            const saved = localStorage.getItem('bookmarkManagerDB');
+            if (saved) {
+                database = JSON.parse(saved);
+            }
+            renderCards();
+        }
+
+        // رندر کارت‌ها
+        function renderCards() {
+            const container = document.getElementById('cardsContainer');
+            container.innerHTML = '';
+
+            database.cards.forEach(card => {
+                const cardElement = document.createElement('div');
+                cardElement.className = 'card';
+                cardElement.innerHTML = `
+                    <div class="card-header">
+                        <div class="card-title">${card.name}</div>
+                        <div class="card-controls">
+                            <button class="icon-btn" onclick="renameCard('${card.id}')">✏️</button>
+                            <button class="icon-btn" onclick="addBookmarkToCard('${card.id}')">➕</button>
+                            <button class="icon-btn" onclick="deleteCard('${card.id}')">🗑️</button>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        ${card.items.map(item => `
+                            <div class="${item.type}-item" onmouseenter="showTooltip(event, '${item.description}')" onmouseleave="hideTooltip()">
+                                <div class="item-header">
+                                    <div class="item-name">${item.name}</div>
+                                    <div class="item-controls">
+                                        <button class="icon-btn" onclick="editItem('${card.id}', '${item.id}')">✏️</button>
+                                        <button class="icon-btn" onclick="deleteItem('${card.id}', '${item.id}')">🗑️</button>
+                                    </div>
+                                </div>
+                                ${item.type === 'bookmark' ? `<div class="item-url">${item.url}</div>` : ''}
+                                ${item.description ? `<div class="item-description">${item.description}</div>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="resize-handle"></div>
+                `;
+                container.appendChild(cardElement);
+            });
+        }
+
+        // توابع مدیریت کارت‌ها
+        function addCard(name) {
+            const newCard = {
+                id: 'card_' + Date.now(),
+                name: name,
+                position: { x: 0, y: 0 },
+                size: { width: 300, height: 250 },
+                items: []
+            };
+            database.cards.push(newCard);
+            saveDatabase();
+            renderCards();
+        }
+
+        function deleteCard(cardId) {
+            database.cards = database.cards.filter(card => card.id !== cardId);
+            saveDatabase();
+            renderCards();
+        }
+
+        function addBookmarkToCard(cardId) {
+            document.getElementById('addBookmarkModal').style.display = 'flex';
+            currentCardId = cardId;
+        }
+
+        // توابع مدیریت بوکمارک‌ها
+        function addBookmark(name, url, description) {
+            const bookmark = {
+                type: "bookmark",
+                id: 'bm_' + Date.now(),
+                name: name,
+                url: url,
+                description: description,
+                favicon: ""
+            };
+            
+            const card = database.cards.find(c => c.id === currentCardId);
+            if (card) {
+                card.items.push(bookmark);
+                saveDatabase();
+                renderCards();
+            }
+        }
+
+        // توابع مودال
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
+        }
+
+        function hideModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // توابع تولتیپ
+        function showTooltip(event, description) {
+            if (!description) return;
+            
+            // ایجاد تولتیپ
+            const tooltip = document.createElement('div');
+            tooltip.className = 'tooltip';
+            tooltip.textContent = description;
+            tooltip.style.cssText = `
+                position: absolute;
+                background: rgba(0, 0, 0, 0.8);
+                color: white;
+                padding: 8px 12px;
+                border-radius: 6px;
+                font-size: 12px;
+                z-index: 1000;
+                max-width: 200px;
+                word-wrap: break-word;
+            `;
+            
+            document.body.appendChild(tooltip);
+            
+            // موقعیت‌دهی تولتیپ
+            const rect = event.target.getBoundingClientRect();
+            tooltip.style.left = (rect.left + window.scrollX) + 'px';
+            tooltip.style.top = (rect.top + window.scrollY - tooltip.offsetHeight - 10) + 'px';
+            
+            event.target.tooltip = tooltip;
+        }
+
+        function hideTooltip() {
+            const tooltip = document.querySelector('.tooltip');
+            if (tooltip) {
+                tooltip.remove();
+            }
+        }
+
+        // مدیریت دیتابیس
+        function downloadDatabase() {
+            const dataStr = JSON.stringify(database, null, 2);
+            const date = new Date().toISOString().replace(/[:.]/g, '-');
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `bookmark-database-${date}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function uploadDatabase(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const newDatabase = JSON.parse(e.target.result);
+                    if (confirm('آیا از آپلود دیتابیس جدید اطمینان دارید؟')) {
+                        database = newDatabase;
+                        saveDatabase();
+                        renderCards();
+                        alert('دیتابیس با موفقیت آپلود شد!');
+                    }
+                } catch (error) {
+                    alert('خطا در خواندن فایل!');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDatabase();
+            
+            // مدیریت حالت ویرایش
+            document.getElementById('editModeToggle').addEventListener('change', function(e) {
+                document.body.classList.toggle('edit-mode', e.target.checked);
+            });
+            
+            // افزودن کارت
+            document.getElementById('addCardBtn').addEventListener('click', () => {
+                showModal('addCardModal');
+            });
+            
+            // فرم افزودن کارت
+            document.getElementById('addCardForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const name = document.getElementById('cardName').value;
+                addCard(name);
+                hideModal('addCardModal');
+                this.reset();
+            });
+            
+            // فرم افزودن بوکمارک
+            document.getElementById('addBookmarkForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const name = document.getElementById('bookmarkName').value;
+                const url = document.getElementById('bookmarkUrl').value;
+                const description = document.getElementById('bookmarkDescription').value;
+                addBookmark(name, url, description);
+                hideModal('addBookmarkModal');
+                this.reset();
+            });
+            
+            // مدیریت دیتابیس
+            document.getElementById('databaseBtn').addEventListener('click', () => {
+                showModal('databaseModal');
+            });
+            
+            document.getElementById('downloadBtn').addEventListener('click', downloadDatabase);
+            
+            document.getElementById('uploadBtn').addEventListener('click', () => {
+                document.getElementById('fileInput').click();
+            });
+            
+            document.getElementById('fileInput').addEventListener('change', function(e) {
+                if (e.target.files.length > 0) {
+                    uploadDatabase(e.target.files[0]);
+                    this.value = '';
+                }
+            });
+            
+            // بستن مودال‌ها
+            document.querySelectorAll('.close-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    this.closest('.modal').style.display = 'none';
+                });
+            });
+            
+            // بستن مودال با کلیک خارج
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        this.style.display = 'none';
+                    }
+                });
+            });
+        });
+
+        // متغیرهای سراسری
+        let currentCardId = null;
+    </script>
 </body>
 </html>
