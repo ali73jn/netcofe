@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>دشبورد من</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div class="search-bar">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="جستجو..." id="searchInput">
+        </div>
+        <div class="header-buttons">
+            <button class="edit-btn" id="editModeBtn">
+                <i class="fas fa-edit"></i>
+                <span>ویرایش</span>
+            </button>
+            <button class="add-btn" id="addCardBtn">
+                <i class="fas fa-plus"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="dashboard" id="dashboard">
+        <!-- کارت ها اینجا ساخته می شوند -->
+    </main>
+
+    <!-- مودال برای ساخت کارت جدید -->
+    <div class="modal" id="cardModal">
+        <div class="modal-content">
+            <h3>ساخت کارت جدید</h3>
+            <input type="text" id="cardTitle" placeholder="عنوان کارت">
+            <div class="size-inputs">
+                <label>عرض: <input type="number" id="cardWidth" value="300" min="200" max="600"> پیکسل</label>
+                <label>ارتفاع: <input type="number" id="cardHeight" value="200" min="150" max="500"> پیکسل</label>
+            </div>
+            <div class="modal-buttons">
+                <button id="createCardBtn">ساخت کارت</button>
+                <button id="cancelCardBtn">لغو</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال برای افزودن آیتم -->
+    <div class="modal" id="itemModal">
+        <div class="modal-content">
+            <h3>افزودن آیتم جدید</h3>
+            <input type="text" id="itemName" placeholder="نام آیتم">
+            <input type="text" id="itemUrl" placeholder="آدرس سایت (https://...)">
+            <select id="itemType">
+                <option value="link">لینک سایت</option>
+                <option value="folder">پوشه</option>
+            </select>
+            <input type="text" id="itemIcon" placeholder="آیکون (اختیاری) مثل: fas fa-home">
+            <div class="modal-buttons">
+                <button id="createItemBtn">افزودن</button>
+                <button id="cancelItemBtn">لغو</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال مدیریت داده -->
+    <div class="modal" id="dataModal">
+        <div class="modal-content">
+            <h3>مدیریت داده‌ها</h3>
+            <div class="data-actions">
+                <button id="exportDataBtn">دانلود فایل داده</button>
+                <button id="importDataBtn">آپلود فایل داده</button>
+                <input type="file" id="fileInput" accept=".json" style="display: none;">
+            </div>
+            <textarea id="dataTextarea" placeholder="محتوای فایل داده..." style="width: 100%; height: 200px; margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-family: monospace;"></textarea>
+            <div class="modal-buttons">
+                <button id="saveDataBtn">ذخیره تغییرات</button>
+                <button id="closeDataBtn">بستن</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
