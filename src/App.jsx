@@ -11,7 +11,7 @@ const ResponsiveGridLayout = WidthProvider(Responsive);
 
 // --- تنظیمات اولیه ---
 const DEFAULT_LAYOUT = { lg: [] };
-const GITHUB_DB_URL = "https://raw.githubusercontent.com/ali73jn/netcofe/refs/heads/main/database.json"; // آدرس خام فایل گیت‌هاب شما
+const GITHUB_DB_URL = "https://raw.githubusercontent.com/USERNAME/REPOSITORY/main/database.json"; // آدرس خام فایل گیت‌هاب شما
 
 export default function App() {
   // --- متغیرهای State ---
