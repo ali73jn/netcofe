@@ -280,6 +280,9 @@ export default function App() {
       </header>
 
       {/* --- صفحه اصلی (گرید) --- */}
+// ... (سایر کدها)
+
+      {/* --- صفحه اصلی (گرید) --- */}
       <main className="p-6">
         <ResponsiveGridLayout
           className="layout"
@@ -290,7 +293,14 @@ export default function App() {
           isDraggable={isEditMode}
           isResizable={isEditMode}
           onLayoutChange={handleLayoutChange}
-          draggableHandle=".cursor-grab" // فقط از هدر کارت می‌شه درگ کرد
+          draggableHandle=".cursor-grab" 
+          
+          // تنظیمات جدید برای کیفیت و نظم (Grid Line)
+          margin={[20, 20]}        // فاصله ۲۰ پیکسلی بین کارت‌ها
+          containerPadding={[20, 20]} // پدینگ اطراف کل محیط گرید
+          compactType={null}       // جلوگیری از جمع شدن تهاجمی کارت‌ها
+          preventCollision={true}  // جلوگیری از افتادن کارت‌ها روی هم
+          // --------------------------------------------------
         >
           {db.layout.map((item) => {
             const cardData = db.cards[item.i] || { title: 'بی‌نام', items: [] };
