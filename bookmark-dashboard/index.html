@@ -7,36 +7,32 @@
     <link rel="stylesheet" href="dashboard.css">
 </head>
 <body>
-    
-    <main id="grid-container">
-    </main>
+
+    <main id="grid-container"></main>
 
     <div id="control-menu">
         <div id="sub-controls" class="hidden-controls">
-            
             <button id="add-card-btn" class="sub-btn" title="افزودن کارت جدید">➕</button>
             <button id="combined-online-import-btn" class="sub-btn" title="دریافت آنلاین کامل (بوکمارک + تنظیمات)">✨🌐</button>
-
             <button id="set-background-btn" class="sub-btn" title="انتخاب پس زمینه">🖼️</button>
-            
             <button id="export-bookmarks-btn" class="sub-btn" title="خروجی بوکمارک‌ها">🔖📤</button>
             <button id="import-bookmarks-btn" class="sub-btn" title="ورود بوکمارک‌ها">🔖📥</button>
-            
             <button id="export-settings-btn" class="sub-btn" title="خروجی تنظیمات">⚙️📤</button>
             <button id="import-settings-btn" class="sub-btn" title="ورود تنظیمات">⚙️📥</button>
         </div>
-        
+
         <button id="goto-bookmarks-btn" class="main-btn" title="مدیریت بوکمارک‌ها">🔖</button>
         <button id="edit-mode-btn" class="main-btn" title="حالت ویرایش">✏️</button>
     </div>
-    
-    <input type="file" id="import-settings-file" accept=".json" style="display: none;">
-    <input type="file" id="import-bookmarks-file" accept=".json" style="display: none;">
-    <input type="file" id="background-file-input" accept="image/*" style="display: none;">
+
+    <input type="file" id="import-settings-file" accept=".json" hidden>
+    <input type="file" id="import-bookmarks-file" accept=".json" hidden>
+    <input type="file" id="background-file-input" accept="image/*" hidden>
 
     <div id="bookmark-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <h3>مدیریت محتوا</h3>
+
             <input type="hidden" id="current-card-id">
             <input type="hidden" id="editing-item-id">
 
@@ -46,7 +42,7 @@
                     <option value="bookmark">بوکمارک</option>
                     <option value="folder">پوشه</option>
                 </select>
-                
+
                 <label for="bookmark-name">نام:</label>
                 <input type="text" id="bookmark-name" required>
 
@@ -54,10 +50,10 @@
                     <label for="bookmark-url">آدرس (URL):</label>
                     <input type="url" id="bookmark-url">
                 </div>
-                
+
                 <label for="bookmark-description">توضیحات (اختیاری):</label>
                 <textarea id="bookmark-description" rows="3"></textarea>
-                
+
                 <div class="modal-buttons">
                     <button type="button" id="delete-btn" class="btn-danger hidden">حذف</button>
                     <button type="button" id="cancel-btn" class="btn-secondary">لغو</button>
@@ -66,7 +62,14 @@
             </form>
         </div>
     </div>
-    
+
     <script src="dashboard.js"></script>
+
+    <script>
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("sw.js");
+        }
+    </script>
+
 </body>
 </html>
