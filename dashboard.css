@@ -8,7 +8,11 @@ html, body {
     font-family: 'Tahoma', sans-serif;
     direction: rtl; /* جهت راست به چپ */
     
-    background-color: white;
+    min-height: 100vh;
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    transition: background-image 0.5s ease-in-out;
     overflow-y: auto; 
 }
 
