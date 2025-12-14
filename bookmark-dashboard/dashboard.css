@@ -1,0 +1,422 @@
+/* ------------------------------------------------------------------ */
+/* تنظیمات پایه (Base Settings) */
+/* ------------------------------------------------------------------ */
+
+html, body {
+    overflow-x: hidden; /* مخفی کردن اسکرول بار افقی در کل صفحه */
+    margin: 0; padding: 0;
+    font-family: 'Tahoma', sans-serif;
+    direction: rtl; /* جهت راست به چپ */
+    
+    background-color: white;
+    overflow-y: auto; 
+}
+
+/* شبکه گرید (Grid Container) */
+#grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(10px, 1fr)); 
+    grid-auto-rows: 10px;
+    gap: 2px; /* فاصله بین سلول‌های گرید */
+    padding: 10px;
+    width: auto; 
+    height: auto;
+    min-height: 100vh; 
+    box-sizing: border-box; 
+}
+
+/* ------------------------------------------------------------------ */
+/* استایل کارت‌ها (Card) */
+/* ------------------------------------------------------------------ */
+
+.bookmark-card {
+    /* 🚨 شیشه‌ای بودن بیشتر کارت‌ها */
+    background-color: rgba(255, 255, 255, 0.5); /* رنگ پس‌زمینه سفید با شفافیت 0.6 */
+    backdrop-filter: blur(20px); /* بلور بیشتر */
+    border: none; 
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15); 
+    border-radius: 8px;
+    padding: 0; 
+    position: relative;
+    overflow: hidden; 
+    display: flex; flex-direction: column;
+    transition: box-shadow 0.3s;
+}
+.bookmark-card:hover {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
+}
+.dragging { opacity: 0.8; z-index: 100; }
+
+/* -------------------- هدر کارت (Header) -------------------- */
+.card-header {
+    display: flex; flex-direction: row; 
+    justify-content: space-between; align-items: center;
+    border-bottom: 1px solid rgba(0,0,0,0.1); 
+    padding: 2px 10px; /* کاهش پدینگ برای کاهش ارتفاع هدر */
+    min-height: 25px; 
+    cursor: default; 
+    user-select: none;
+}
+
+.card-title {
+    flex-grow: 1; text-align: right; 
+    margin: 0 5px;
+    font-size: 1.1em; /* فونت بزرگتر */
+    color: #333; font-weight: bold;
+    cursor: default; padding: 2px 5px; border-radius: 4px;
+    order: 1; /* عنوان بین دکمه درگ و لبه راست قرار گیرد */
+}
+.editing-mode .card-title {
+    cursor: text; background: rgba(255,255,255,0.8); border: 1px dashed #777;
+}
+
+/* دکمه‌های داخل هدر (فقط Drag) */
+.card-btn {
+    width: 24px; height: 24px; border-radius: 50%; border: none;
+    display: flex; justify-content: center; align-items: center; cursor: pointer;
+    font-size: 1.1em; 
+    opacity: 0; 
+    pointer-events: none; transition: opacity 0.2s;
+}
+.editing-mode .card-btn { opacity: 0.6; pointer-events: auto; }
+.editing-mode .card-btn:hover { opacity: 1; }
+
+.btn-drag { background: transparent; color: #555; order: 2; cursor: grab; font-size: 1.4em; } /* دکمه درگ در سمت راست هدر */
+.dragging .btn-drag { cursor: grabbing; }
+
+/* -------------------- محتوای کارت (Content) -------------------- */
+.card-content { 
+    flex-grow: 1; 
+    overflow-y: auto; 
+    overflow-x: hidden; /* مخفی کردن اسکرول افقی محتوا */
+    height: calc(100% - 37px); 
+    box-sizing: border-box;
+}
+
+/* کانتینر کاشی‌ها (Tiles Container) */
+.bookmark-tiles {
+    display: grid; 
+    /* تنظیم برای دو ستون با عرض حداقل ۱۶۰ پیکسل */
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); 
+    gap: 5px; 
+    padding: 5px; /* پدینگ اطراف کانتینر برای فاصله از لبه‌های کارت */
+    overflow-y: auto; 
+    overflow-x: hidden; 
+    /*width: 100%;*/
+}
+
+/* -------------------- آیتم‌های لیست (Tile) -------------------- */
+.tile {
+    display: flex; 
+    /* 🚨 اصلاح: بازگشت به جهت پیش‌فرض (آیکون سمت راست) در RTL */
+    flex-direction: row-reverse; 
+    align-items: center; 
+    justify-content: space-between; 
+    height: 30px; 
+    width: 100%; 
+    padding: 2px 3px; /* پدینگ داخلی آیتم (فاصله نام از آیکون) */
+    
+    /* پس‌زمینه سفید خالص برای بوکمارک‌ها */
+    background-color: #fff; 
+    position: relative;
+    border: 1px solid #eee; 
+    border-radius: 4px;
+    text-decoration: none;
+    color: inherit;
+    transition: background-color 0.1s, box-shadow 0.1s, transform 0.1s;
+    overflow: hidden; 
+    white-space: nowrap; 
+    box-sizing: border-box;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+.tile:hover {
+    background-color: #f0f0f0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15); 
+    transform: translateY(-1px);
+}
+/* 🚨 اصلاح: رنگ پس زمینه پوشه‌ها */
+.tile-folder { 
+    background-color: #fffbe0; /* زرد کمرنگ */
+} 
+
+.tile-icon { 
+    width: 25px !important; 
+    height: 25px !important; 
+    object-fit: contain; 
+    flex-shrink: 0;
+	/* 🚨 افزودن لبه‌های گرد (مربع لبه گرد) */
+    border-radius: 8px;
+}
+.tile-name {
+    overflow: hidden;
+    text-overflow: ellipsis; 
+    flex-grow: 1; 
+    /* 🚨 کاهش مارجین‌ها برای نزدیک شدن به لبه‌ها */
+    margin-inline-start: 3px; /* فاصله از آیکون */
+    margin-inline-end: 1px; /* فاصله از دکمه ویرایش */
+    text-align: right; 
+}
+
+/* آیکون ویرایش (مداد) */
+.tile .tile-edit-btn {
+    /* 🚨 اصلاح موقعیت به گوشه بالا-چپ */
+    position: absolute; 
+    top: 0; 
+    left: 0; /* در RTL این گوشه بالا چپ است */
+    
+    width: 25px; /* بزرگتر شدن برای کلیک آسان‌تر */
+    height: 25px;
+    background: rgba(30, 160, 160, 0.8); /* پس‌زمینه نیمه‌شفاف برای وضوح */
+    border-radius: 10px; /* گرد کردن گوشه پایین-راست */
+    
+    opacity: 0;
+    pointer-events: none;
+    flex-shrink: 0;
+    font-size: 1em;
+    color: #444;
+    display: flex; /* برای تراز کردن محتوای مداد */
+    justify-content: center;
+    align-items: center;
+    
+    transition: opacity 0.2s, background 0.2s;
+    z-index: 5;
+}
+
+.editing-mode .tile .tile-edit-btn {
+    opacity: 1; /* 💡 این قانون در حالت ویرایش آن را ثابت فعال می‌کند */
+    pointer-events: auto;
+}
+
+.editing-mode .tile .tile-edit-btn {
+    opacity: 1;
+    pointer-events: auto;
+}
+.tile:hover .tile-edit-btn:hover {
+    background: #eee;
+    color: #000;
+}
+
+/* -------------------- ریسایز هندل (Resize Handle) -------------------- */
+.resize-handle {
+    position: absolute; bottom: 0; 
+    left: 0; /* هندل در گوشه پایین چپ */
+    right: auto; 
+    
+    width: 15px; height: 15px;
+    background: rgba(40, 167, 69, 0.7); /* رنگ سبز */
+    border-radius: 0 5px 0 8px; 
+    cursor: nesw-resize; 
+    opacity: 0; 
+    pointer-events: none;
+    z-index: 10;
+}
+.editing-mode .resize-handle { opacity: 1; pointer-events: auto; }
+
+
+/* -------------------- Breadcrumbs و دکمه‌های کنترل -------------------- */
+.card-breadcrumbs { 
+    font-size: 1.1em; 
+    color: #666; 
+    padding: 4px 15px 6px; 
+    margin: 0; 
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start; /* شروع آیتم‌ها از راست و دکمه‌ها در چپ */
+    white-space: nowrap;
+}
+
+.crumb { 
+    cursor: pointer; 
+    text-decoration: underline; 
+    color: #333; 
+    flex-shrink: 0;
+}
+.crumb:hover {
+    color: #000;
+}
+
+/* 🛑🚨 استایل دکمه‌های جدید در Breadcrumbs (افزودن و حذف) */
+.card-control-btn {
+    margin-inline-start: 5px; 
+    
+    /* دایره سفید با سایه */
+    width: 20px; 
+    height: 20px; 
+    border: none;
+    background: #fff; 
+    border-radius: 50%; 
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); 
+    
+    cursor: pointer;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    opacity: 0.9;
+    transition: opacity 0.1s, transform 0.1s;
+}
+
+.card-control-btn:hover {
+    opacity: 1;
+    transform: scale(1.05);
+}
+
+.btn-del-crumb { 
+    color: #dc3545; 
+    font-weight: bold; 
+    font-size: 1em; /* سایز آیکون ❌ */
+}
+.btn-add-crumb { 
+    color: #28a745; 
+    font-weight: bold; 
+    font-size: 1em; /* سایز آیکون + */
+    /*padding-bottom: 2px; /* تنظیم تراز عمودی برای + */
+}
+
+/* ------------------------------------------------------------------ */
+/* اصلاحات Scrollbar */
+/* ------------------------------------------------------------------ */
+
+/* 1. برای مرورگرهای Webkit (کروم، سافاری) */
+.card-content::-webkit-scrollbar, 
+.bookmark-tiles::-webkit-scrollbar {
+	display: none; /* 🚨 اصلی‌ترین دستور برای پنهان کردن در کروم و سافاری */
+    width: 0px; /* عرض اسکرول بار عمودی */
+    height: 0px; 
+}
+
+.card-content::-webkit-scrollbar-track,
+.bookmark-tiles::-webkit-scrollbar-track {
+    background: transparent; /* بی رنگ کردن پس زمینه اسکرول بار */
+}
+
+.card-content::-webkit-scrollbar-thumb,
+.bookmark-tiles::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.3); /* رنگ دسته اسکرول بار */
+    border-radius: 4px;
+    border: 1px solid transparent; 
+}
+
+.card-content::-webkit-scrollbar-thumb:hover,
+.bookmark-tiles::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* 2. برای Firefox */
+.card-content {
+    scrollbar-width: none; 
+    scrollbar-color: rgba(0, 0, 0, 0.3) transparent; 
+}
+
+
+/* ------------------------------------------------------------------ */
+/* منوی کنترل اصلی و Modal (بدون تغییر) */
+/* ------------------------------------------------------------------ */
+
+#control-menu {
+    position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: row-reverse; align-items: center; z-index: 1000;
+}
+
+.main-btn {
+    width: 40px; height: 40px; border-radius: 50%; background: #007bff; color: white; border: none; font-size: 1.2em; cursor: pointer; margin-right: 5px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); z-index: 2; display: flex; justify-content: center; align-items: center;
+}
+/* ... بقیه استایل‌های منوی کنترل و Modal ... */
+
+#sub-controls {
+    display: flex; flex-direction: row-reverse; flex-wrap: wrap; 
+    align-items: center; transition: all 0.3s ease; margin-left: 10px; 
+}
+.hidden-controls {
+    opacity: 0; pointer-events: none; transform: translateX(10px); 
+}
+.visible-controls {
+    opacity: 1; pointer-events: auto; transform: translateX(0);
+}
+.sub-btn {
+    width: 40px; height: 40px; border-radius: 50%; background: #ffffff; color: white; border: none; font-size: 1.2em; cursor: pointer; margin-right: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); display: flex; justify-content: center; align-items: center;
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+.sub-btn:hover { background: #5a6268; }
+
+.modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 2000;
+}
+.modal-content {
+    background: white; padding: 20px; border-radius: 8px; width: 300px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+}
+.hidden { display: none !important; }
+.modal-content label { display: block; margin-top: 10px; }
+.modal-content input, .modal-content select { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+.modal-buttons { margin-top: 15px; display: flex; justify-content: flex-end; gap: 5px; }
+.btn-success { background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; transition: background 0.2s;}
+.btn-danger { background: #dc3545; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; transition: background 0.2s;}
+.btn-secondary { background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; transition: background 0.2s;}
+.btn-success:hover { background: #218838; }
+.btn-danger:hover { background: #c82333; }
+.btn-secondary:hover { background: #5a6268; }
+
+/* ------------------------------------------ */
+/* Compact Vertical Grid View                 */
+/* ------------------------------------------ */
+
+.view-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(85px, 1fr)) !important;
+    gap: 8px !important;
+}
+
+.tile.tile-grid-mode {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+
+    width: 100px !important;
+    height: 70px !important;
+    padding: 5px !important;
+
+    background: #fff;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+
+    text-align: center !important;
+    white-space: nowrap !important; /* فقط یک خط */
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    position: relative;
+}
+
+.tile.tile-grid-mode:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.20);
+}
+
+.tile.tile-grid-mode .tile-icon {
+    width: 36px !important;
+    height: 36px !important;
+    margin-bottom: 5px;
+    border-radius: 8px;
+    object-fit: contain;
+}
+
+.tile.tile-grid-mode .tile-name {
+    margin-top: 3px !important;
+    text-align: center;
+    width: 100%;
+    font-size: 1em;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+.tile.tile-grid-mode .tile-edit-btn {
+    top: 4px;
+    left: 4px;
+}
