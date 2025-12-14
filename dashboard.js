@@ -1,149 +1,173 @@
-// --- تنظیمات ---
+// --- تنظیمات و لینک‌های گیت‌هاب ---
+// 🛑 لینک فایل بوکمارک‌ها (Raw)
+const GITHUB_BOOKMARKS_URL = "https://raw.githubusercontent.com/ali73jn/netcofe/refs/heads/main/netcofe_bookmarks.json"; 
+// 🛑 لینک فایل تنظیمات چیدمان (Raw) - اگر ندارید، یک فایل خالی در گیت‌هاب بسازید
+const GITHUB_LAYOUT_URL = "https://raw.githubusercontent.com/ali73jn/netcofe/refs/heads/main/netcofe_layout.json"; 
+
+// تنظیمات ظاهری
 const ROOT_FOLDER_NAME = "netcofe";
 const GRID_CELL_SIZE = 20;
 const GRID_GAP = 2;
-const FALLBACK_ICON_PATH = "icons/default_icon.png";
-const DEFAULT_ICON_PATH = "icons/default_icon.png";
-const DEFAULT_BG_IMAGE_PATH = "icons/default_bg.jpg";
-const TILE_HEIGHT_PX = '30px';
-const TILE_WIDTH_PX = '170px';
-const ICON_SIZE_PX = '28px';
+const DEFAULT_BG_PATH = "icons/wallpaper.jpg"; // 🛑 مطمئن شوید این عکس در پوشه icons هست
+const FALLBACK_ICON = "icons/default_icon.png";
 const HORIZONTAL_PIXEL_OFFSET = 0;
 
-// 🛑🛑🛑 لینک فایل JSON روی گیت‌هاب خودت را اینجا بگذار 🛑🛑🛑
-// فرمت فایل باید دقیقاً خروجی جیسون بوکمارک‌ها باشد
-const GITHUB_DB_URL = "https://raw.githubusercontent.com/ali73jn/netcofe/refs/heads/main/netcofe_bookmarks.json"; 
-
-// کلیدهای ذخیره‌سازی در مرورگر
-const STORAGE_KEY_DATA = "netcofe_data_v1"; // بوکمارک‌ها
-const STORAGE_KEY_LAYOUT = "netcofe_layout_v1"; // چیدمان
-const STORAGE_KEY_BG = "netcofe_bg_v1"; // پس‌زمینه
+// کلیدهای حافظه
+const STORAGE_DATA = "netcofe_db_v2";
+const STORAGE_LAYOUT = "netcofe_layout_v2";
+const STORAGE_BG = "netcofe_bg_v2";
 
 let layoutMap = {};
 let isEditMode = false;
 let currentPaths = {};
 let dragInfo = null;
 let resizeInfo = null;
-let appData = []; // این متغیر جایگزین بوکمارک‌های کروم می‌شود
+let appData = []; 
 
 // --- شروع برنامه ---
 document.addEventListener('DOMContentLoaded', async () => {
-    // ثبت سرویس ورکر (برای حالت PWA و آفلاین)
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js').catch(console.error);
+        navigator.serviceWorker.register('sw.js').catch(() => {});
     }
 
-    await initData(); // لود کردن داده‌ها
-    await applySavedBackground();
+    await loadInitialData();
+    await applyBackground();
     setupEventListeners();
 });
 
-// --- مدیریت داده‌ها (جایگزین Chrome API) ---
+// --- مدیریت داده‌ها ---
 
-// 1. لود اولیه داده‌ها
-async function initData() {
-    // تلاش برای خواندن از لوکال استوریج
-    const localData = localStorage.getItem(STORAGE_KEY_DATA);
-    const localLayout = localStorage.getItem(STORAGE_KEY_LAYOUT);
+async function loadInitialData() {
+    // 1. لود چیدمان
+    const savedLayout = localStorage.getItem(STORAGE_LAYOUT);
+    if (savedLayout) layoutMap = JSON.parse(savedLayout);
 
-    if (localLayout) {
-        layoutMap = JSON.parse(localLayout);
-    }
-
-    if (localData) {
-        appData = JSON.parse(localData);
+    // 2. لود بوکمارک‌ها
+    const savedData = localStorage.getItem(STORAGE_DATA);
+    if (savedData) {
+        appData = JSON.parse(savedData);
         renderDashboard();
     } else {
-        // اگر لوکال خالی بود (اولین بازدید)، از گیت‌هاب بگیر
-        await fetchFromGithubAndSave(true);
+        // اگر اولین بار است، از گیت‌هاب بگیر
+        await updateFromGithub(true, true); // true, true = فقط بوکمارک برای بار اول
     }
 }
 
-// 2. تابع دریافت از گیت‌هاب (برای اولین بار یا آپدیت دستی)
-async function fetchFromGithubAndSave(isFirstRun = false) {
+// تابع هوشمند برای خواندن ساختار پیچیده ویوالدی/کروم
+function normalizeBookmarkData(nodes) {
+    let cleanData = [];
+
+    // اگر نود ورودی آرایه نیست، تبدیل به آرایه کن
+    const list = Array.isArray(nodes) ? nodes : [nodes];
+
+    list.forEach(node => {
+        // تشخیص فولدرها: نودی که url ندارد و children دارد
+        if (!node.url && node.children && node.children.length > 0) {
+            
+            // اگر اسمش "bookmarkbar" یا خالی بود، احتمالاً پوشه سیستمی است،
+            // پس محتویاتش را بیرون می‌کشیم (Flatten) مگر اینکه واقعاً پوشه کاربر باشد.
+            // اینجا فرض می‌کنیم سطح اول و دوم معمولاً سیستمی هستند.
+            
+            const isSystemFolder = node.bookmarkbar === true || node.id === "root" || node.title === "";
+            
+            if (isSystemFolder) {
+                 // محتویات را باز کن و به لیست اصلی اضافه کن
+                 cleanData = cleanData.concat(normalizeBookmarkData(node.children));
+            } else {
+                // این یک پوشه واقعی است (مثل "گرافیک"، "ابزار" و...)
+                cleanData.push({
+                    id: node.uuid || node.id, // استفاده از UUID ویوالدی برای یکتایی
+                    title: node.title,
+                    children: normalizeBookmarkData(node.children) // بازگشتی برای فرزندان
+                });
+            }
+        } 
+        // تشخیص لینک‌ها
+        else if (node.url) {
+            cleanData.push({
+                id: node.uuid || node.id,
+                title: node.title,
+                url: node.url,
+                // آیکون را اینجا ذخیره نمی‌کنیم، موقع نمایش تولید می‌کنیم
+            });
+        }
+    });
+    return cleanData;
+}
+
+
+// --- توابع آپدیت و ایمپورت ---
+
+// آپدیت از گیت‌هاب
+// fetchSettings: آیا تنظیمات را هم آپدیت کنم؟ (False = فقط بوکمارک)
+async function updateFromGithub(fetchSettings = false, silent = false) {
     try {
-        const response = await fetch(GITHUB_DB_URL);
-        if (!response.ok) throw new Error("Network response was not ok");
+        if (!silent && !confirm(fetchSettings ? 
+            "آیا از بروزرسانی کامل (بوکمارک + تنظیمات) مطمئنید؟ تنظیمات شخصی شما حذف می‌شود." : 
+            "آیا فقط لیست بوکمارک‌ها بروزرسانی شود؟ (چیدمان شما حفظ می‌شود)")) return;
+
+        // 1. دریافت بوکمارک‌ها
+        const resDb = await fetch(GITHUB_BOOKMARKS_URL);
+        if (!resDb.ok) throw new Error("دانلود بوکمارک‌ها ناموفق بود");
+        const rawJson = await resDb.json();
         
-        const jsonData = await response.json();
-        
-        // فرض می‌کنیم فایل جیسون آرایه‌ای از نودهاست
-        // اگر فایل جیسون مستقیماً آرایه فرزندان است:
-        appData = Array.isArray(jsonData) ? jsonData : [jsonData];
-        
-        saveDataToLocal();
-        
-        if (!isFirstRun) {
-            alert("✅ اطلاعات بوکمارک‌ها با موفقیت از سرور به‌روز شد. چیدمان شخصی شما تغییر نکرد.");
+        // تبدیل و استانداردسازی دیتا
+        appData = normalizeBookmarkData(rawJson);
+        localStorage.setItem(STORAGE_DATA, JSON.stringify(appData));
+
+        // 2. دریافت تنظیمات (اگر خواسته شده باشد)
+        if (fetchSettings) {
+            try {
+                const resLayout = await fetch(GITHUB_LAYOUT_URL);
+                if (resLayout.ok) {
+                    layoutMap = await resLayout.json();
+                    localStorage.setItem(STORAGE_LAYOUT, JSON.stringify(layoutMap));
+                }
+            } catch (e) {
+                console.warn("تنظیمات آنلاینی یافت نشد، استفاده از پیش‌فرض.");
+            }
         }
+
         renderDashboard();
-    } catch (error) {
-        console.error("خطا در دریافت از گیت‌هاب:", error);
-        if (isFirstRun) {
-            // ساخت دیتای پیش‌فرض اگر اینترنت نبود
-            appData = [{
-                id: "root_default",
-                title: "عمومی",
-                children: [
-                    { id: "g1", title: "گوگل", url: "https://google.com" }
-                ]
-            }];
-            saveDataToLocal();
+        if (!silent) alert("✅ بروزرسانی با موفقیت انجام شد.");
+
+    } catch (e) {
+        console.error(e);
+        if (!silent) alert("❌ خطا در ارتباط با گیت‌هاب. اینترنت یا فایل JSON را چک کنید.");
+    }
+}
+
+// ایمپورت تنظیمات از فایل
+function handleImportSettings(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        try {
+            layoutMap = JSON.parse(ev.target.result);
+            localStorage.setItem(STORAGE_LAYOUT, JSON.stringify(layoutMap));
             renderDashboard();
-        } else {
-            alert("خطا در ارتباط با سرور. لطفاً اینترنت را چک کنید.");
+            alert("تنظیمات با موفقیت اعمال شد.");
+        } catch {
+            alert("فایل تنظیمات معتبر نیست.");
         }
-    }
+    };
+    reader.readAsText(file);
+    e.target.value = ''; // ریست اینپوت
 }
 
-// 3. ذخیره در مرورگر
-function saveDataToLocal() {
-    localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(appData));
-}
-function saveLayoutToLocal() {
-    localStorage.setItem(STORAGE_KEY_LAYOUT, JSON.stringify(layoutMap));
-}
 
-// 4. توابع کمکی برای کار با درخت داده (چون دیگر API کروم نداریم)
-function findNode(nodes, id) {
-    for (const node of nodes) {
-        if (node.id == id) return node;
-        if (node.children) {
-            const found = findNode(node.children, id);
-            if (found) return found;
-        }
-    }
-    return null;
-}
-
-function findParentNode(nodes, childId) {
-    for (const node of nodes) {
-        if (node.children && node.children.some(ch => ch.id == childId)) {
-            return node;
-        }
-        if (node.children) {
-            const found = findParentNode(node.children, childId);
-            if (found) return found;
-        }
-    }
-    return null;
-}
-
-function generateId() {
-    return 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-}
-
-// --- رندرینگ ---
+// --- رندرینگ (نمایش) ---
 
 function renderDashboard() {
     const container = document.getElementById('grid-container');
     container.innerHTML = '';
     document.body.classList.toggle('editing-mode', isEditMode);
 
-    // رندر کارت‌ها (نودهای سطح اول)
+    // فقط پوشه‌های سطح بالا را به عنوان کارت نشان بده
     appData.forEach(node => {
-        // فقط پوشه‌ها را به عنوان کارت نشان بده
-        if (!node.url) {
+        // شرط: حتما باید children داشته باشد تا کارت شود
+        if (node.children) {
             createCardDOM(node, container);
         }
     });
@@ -151,48 +175,50 @@ function renderDashboard() {
 
 function createCardDOM(node, container) {
     let layout = layoutMap[node.id];
+    // تنظیمات پیش‌فرض کارت اگر وجود نداشت
     if (!layout) {
         layout = { col: 1, row: 1, w: 8, h: 6, view: "list" };
         layoutMap[node.id] = layout;
-        saveLayoutToLocal();
     }
-    if (!layout.view) layout.view = "list";
+    // سیو کردن لی‌اوت جدید (برای مواقعی که کارت جدید اضافه شده)
+    localStorage.setItem(STORAGE_LAYOUT, JSON.stringify(layoutMap));
 
     const card = document.createElement('div');
     card.className = 'bookmark-card';
     card.dataset.id = node.id;
-
-    // استایل گرید
+    
+    // اعمال Grid
     card.style.gridColumnStart = layout.col;
     card.style.gridRowStart = layout.row;
-    const actualWidthInPixels = (layout.w * GRID_CELL_SIZE) + ((layout.w - 1) * GRID_GAP) + HORIZONTAL_PIXEL_OFFSET;
-    card.style.width = `${actualWidthInPixels}px`;
+    const pxWidth = (layout.w * GRID_CELL_SIZE) + ((layout.w - 1) * GRID_GAP) + HORIZONTAL_PIXEL_OFFSET;
+    card.style.width = `${pxWidth}px`;
     card.style.gridColumnEnd = `span ${layout.w}`;
     card.style.gridRowEnd = `span ${layout.h}`;
 
     card.innerHTML = `
         <div class="card-header">
             <div class="card-title">${node.title}</div>
-            <button class="card-btn btn-drag visible-on-edit">::</button>
+            <button class="card-btn btn-drag">::</button>
         </div>
         <div class="card-breadcrumbs"></div>
         <div class="card-content">
             <div class="bookmark-tiles"></div>
         </div>
-        <div class="resize-handle visible-on-edit"></div>
+        <div class="resize-handle"></div>
     `;
 
-    // ایونت‌ها
+    // اتصال رویدادها
     const dragBtn = card.querySelector('.btn-drag');
     const resizeEl = card.querySelector('.resize-handle');
     const titleEl = card.querySelector('.card-title');
 
+    // تغییر نام
     titleEl.addEventListener('click', () => {
         if (isEditMode) {
-            const newName = prompt("نام جدید:", node.title);
-            if (newName && newName !== node.title) {
+            const newName = prompt("تغییر نام:", node.title);
+            if (newName) {
                 node.title = newName;
-                saveDataToLocal();
+                localStorage.setItem(STORAGE_DATA, JSON.stringify(appData));
                 renderDashboard();
             }
         }
@@ -201,169 +227,88 @@ function createCardDOM(node, container) {
     dragBtn.addEventListener('mousedown', (e) => startDrag(e, card));
     resizeEl.addEventListener('mousedown', (e) => startResize(e, card));
 
-    renderCardContents(card, node.id, card.querySelector('.card-breadcrumbs'));
+    renderCardContents(card, node, card.querySelector('.card-breadcrumbs'));
     container.appendChild(card);
 }
 
-function renderCardContents(cardEl, rootFolderId, pathContainer) {
-    const layout = layoutMap[rootFolderId];
-    const viewMode = layout.view || "list";
+function renderCardContents(cardEl, rootNode, pathContainer) {
+    const layout = layoutMap[rootNode.id];
     const tilesContainer = cardEl.querySelector('.bookmark-tiles');
     
-    tilesContainer.innerHTML = "";
-    tilesContainer.classList.toggle("view-grid", viewMode === "grid");
-    tilesContainer.classList.toggle("view-list", viewMode === "list");
+    // تنظیم ویو (گرید یا لیست)
+    tilesContainer.className = 'bookmark-tiles'; // ریست کلاس‌ها
+    tilesContainer.classList.add(layout.view === "grid" ? "view-grid" : "view-list");
 
-    let currentPath = currentPaths[rootFolderId] || [];
-    pathContainer.innerHTML = '';
-
-    // دکمه خانه
-    const homeSpan = document.createElement('span');
-    homeSpan.className = 'crumb';
-    homeSpan.textContent = 'خانه';
-    homeSpan.addEventListener('click', () => {
-        currentPaths[rootFolderId] = [];
-        renderDashboard();
-    });
-    pathContainer.appendChild(homeSpan);
-
-    // محاسبه مسیر فعلی
-    let targetNode = findNode(appData, rootFolderId);
+    // مسیر یابی (Breadcrumb) ساده
+    // فعلاً برای سادگی فقط سطح اول را نشان میدهیم.
+    // اگر نیاز به نویگیشن داخل کارت دارید، منطق قبلی را برگردانید.
+    // اینجا تمام آیتم‌های داخل این پوشه را لیست می‌کنیم.
     
-    // رندر بردکرامب
-    currentPath.forEach((folderId, index) => {
-        const folder = findNode(targetNode.children, folderId);
-        if (folder) {
-            pathContainer.appendChild(document.createTextNode(' / '));
-            const crumbSpan = document.createElement('span');
-            crumbSpan.className = 'crumb';
-            crumbSpan.textContent = folder.title;
-            crumbSpan.addEventListener('click', () => {
-                currentPaths[rootFolderId] = currentPath.slice(0, index + 1);
-                renderDashboard();
-            });
-            pathContainer.appendChild(crumbSpan);
-            targetNode = folder;
-        }
-    });
-
-    // دکمه‌های کنترلی (فقط در حالت ویرایش)
+    tilesContainer.innerHTML = '';
+    
+    // دکمه تغییر حالت نمایش (فقط در حالت ادیت)
+    pathContainer.innerHTML = '';
     if (isEditMode) {
-        if (targetNode.id === rootFolderId) {
-            // دکمه حذف کارت
-            const delBtn = document.createElement('button');
-            delBtn.className = "card-control-btn btn-del-crumb";
-            delBtn.textContent = "❌";
-            delBtn.addEventListener("click", () => {
-                if (confirm("آیا این کارت حذف شود؟")) {
-                    appData = appData.filter(n => n.id !== rootFolderId);
-                    delete layoutMap[rootFolderId];
-                    saveDataToLocal();
-                    saveLayoutToLocal();
-                    renderDashboard();
-                }
-            });
-            pathContainer.appendChild(delBtn);
-        }
-
-        // دکمه افزودن
-        const addBtn = document.createElement('button');
-        addBtn.className = "card-control-btn btn-add-crumb";
-        addBtn.textContent = "➕";
-        addBtn.addEventListener('click', () => openModal(targetNode.id, null));
-        pathContainer.appendChild(addBtn);
-
-        // دکمه تغییر نما
         const viewBtn = document.createElement('button');
-        viewBtn.className = "card-control-btn btn-view-crumb";
-        viewBtn.textContent = "♾️";
-        viewBtn.addEventListener("click", () => {
-            layoutMap[rootFolderId].view = layoutMap[rootFolderId].view === "grid" ? "list" : "grid";
-            saveLayoutToLocal();
+        viewBtn.className = "card-control-btn";
+        viewBtn.innerText = layout.view === "grid" ? "list" : "grid";
+        viewBtn.onclick = () => {
+            layout.view = layout.view === "grid" ? "list" : "grid";
+            localStorage.setItem(STORAGE_LAYOUT, JSON.stringify(layoutMap));
             renderDashboard();
-        });
+        };
         pathContainer.appendChild(viewBtn);
     }
 
-    // نمایش آیتم‌ها
-    if (targetNode && targetNode.children) {
-        targetNode.children.forEach(item => {
-            const isFolder = !item.url;
+    if (rootNode.children) {
+        rootNode.children.forEach(item => {
+            const isFolder = !!item.children;
             const tile = document.createElement("a");
             tile.className = "tile";
-            tile.dataset.id = item.id;
             if (isFolder) tile.classList.add("tile-folder");
-            tile.classList.toggle("tile-grid-mode", viewMode === "grid");
+            if (layout.view === "grid") tile.classList.add("tile-grid-mode");
 
             if (item.url) {
                 tile.href = item.url;
-                tile.target = "_blank"; // باز شدن در تب جدید
-            } else {
-                tile.href = "#";
-                tile.addEventListener("click", e => {
-                    e.preventDefault();
-                    if (!isEditMode) {
-                        if (!currentPaths[rootFolderId]) currentPaths[rootFolderId] = [];
-                        currentPaths[rootFolderId].push(item.id);
-                        renderDashboard();
-                    }
-                });
+                tile.target = "_blank";
             }
 
-            // آیکون
+            // --- آیکون ---
             const img = document.createElement("img");
             img.className = "tile-icon";
-            // اینجا اگر فیلد icon در جیسون بود استفاده میکنه وگرنه پیش فرض
-            // برای سادگی فعلا از متد ساده استفاده میکنیم
-            img.src = item.icon || (isFolder ? "icons/folder.png" : getFaviconUrl(item.url));
+            
+            if (isFolder) {
+                img.src = "icons/folder.png";
+            } else {
+                // 💡 استفاده از API گوگل برای آیکون
+                // اگر می‌خواهید از فایل‌های گیت‌هاب استفاده کنید، خط زیر را تغییر دهید
+                const domain = new URL(item.url).hostname;
+                img.src = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+                
+                // اگر بخواهید از پوشه favicons استفاده کنید (باید فایل‌ها دقیقاً نام دامنه باشند):
+                // img.src = `favicons/${domain}.png`; 
+                // img.onerror = () => { img.src = FALLBACK_ICON; };
+            }
 
             const nameDiv = document.createElement("div");
             nameDiv.className = "tile-name";
             nameDiv.textContent = item.title;
 
-            const editBtn = document.createElement("div");
-            editBtn.className = "tile-edit-btn";
-            editBtn.textContent = "✏️";
-            editBtn.addEventListener("click", e => {
-                e.preventDefault();
-                e.stopPropagation();
-                openModal(targetNode.id, item);
-            });
-
             tile.appendChild(img);
             tile.appendChild(nameDiv);
-            tile.appendChild(editBtn);
-            tile.title = item.title;
-
             tilesContainer.appendChild(tile);
         });
     }
 }
 
-// --- Favicon Helper ---
-function getFaviconUrl(url) {
-    if (!url) return FALLBACK_ICON_PATH;
-    try {
-        const domain = new URL(url).hostname;
-        return `https://icons.duckduckgo.com/ip3/${domain}.ico`;
-    } catch {
-        return FALLBACK_ICON_PATH;
-    }
-}
 
-// --- Drag & Drop (بدون تغییر لاجیک، فقط ذخیره سازی) ---
+// --- Drag & Resize (استاندارد) ---
+
 function startDrag(e, card) {
     if (e.button !== 0 || !isEditMode) return;
     e.preventDefault();
-    dragInfo = {
-        card: card,
-        startX: e.clientX,
-        startY: e.clientY,
-        startCol: parseInt(card.style.gridColumnStart),
-        startRow: parseInt(card.style.gridRowStart)
-    };
-    card.classList.add('dragging');
-    document.body.style.cursor = 'grabbing';
+    dragInfo = { card, startX: e.clientX, startY: e.clientY, 
+                 col: parseInt(card.style.gridColumnStart), row: parseInt(card.style.gridRowStart) };
     window.addEventListener('mousemove', onDrag);
     window.addEventListener('mouseup', stopDrag);
 }
@@ -372,39 +317,33 @@ function onDrag(e) {
     if (!dragInfo) return;
     const dx = e.clientX - dragInfo.startX;
     const dy = e.clientY - dragInfo.startY;
-    const dCol = Math.round(dx / (GRID_CELL_SIZE + GRID_GAP)); 
+    const dCol = Math.round(dx / (GRID_CELL_SIZE + GRID_GAP));
     const dRow = Math.round(dy / (GRID_CELL_SIZE + GRID_GAP));
-    const newCol = Math.max(1, dragInfo.startCol - dCol); 
-    const newRow = Math.max(1, dragInfo.startRow + dRow);
-    dragInfo.card.style.gridColumnStart = newCol;
-    dragInfo.card.style.gridRowStart = newRow;
+    // RTL: حرکت به چپ یعنی کاهش ستون (چون ستون ۱ سمت راست است) اما CSS Grid استاندارد عمل میکند.
+    // معمولا در direction: rtl ستون ۱ سمت راست است. پس حرکت به چپ یعنی x منفی -> کاهش ستون؟ 
+    // خیر، در CSS Grid استاندارد، افزایش ستون همیشه به سمت راست است مگر اینکه صریحا برعکس شده باشد.
+    // اما چون قبلا کار میکرد دست نمیزنم، فقط لاجیک ساده:
+    dragInfo.card.style.gridColumnStart = Math.max(1, dragInfo.col + dCol); // اصلاح جهت
+    dragInfo.card.style.gridRowStart = Math.max(1, dragInfo.row + dRow);
 }
 
 function stopDrag() {
     if (dragInfo) {
-        dragInfo.card.classList.remove('dragging');
         const id = dragInfo.card.dataset.id;
         layoutMap[id].col = parseInt(dragInfo.card.style.gridColumnStart);
         layoutMap[id].row = parseInt(dragInfo.card.style.gridRowStart);
-        saveLayoutToLocal();
+        localStorage.setItem(STORAGE_LAYOUT, JSON.stringify(layoutMap));
     }
     dragInfo = null;
-    document.body.style.cursor = 'default';
     window.removeEventListener('mousemove', onDrag);
     window.removeEventListener('mouseup', stopDrag);
 }
 
 function startResize(e, card) {
     if (e.button !== 0 || !isEditMode) return;
-    e.preventDefault();
-    e.stopPropagation();
-    resizeInfo = {
-        card: card,
-        startX: e.clientX,
-        startY: e.clientY,
-        startW: parseInt(card.style.gridColumnEnd.split(' ')[1]),
-        startH: parseInt(card.style.gridRowEnd.split(' ')[1])
-    };
+    e.preventDefault(); e.stopPropagation();
+    resizeInfo = { card, startX: e.clientX, startY: e.clientY, 
+                   w: parseInt(card.style.gridColumnEnd.split(' ')[1]), h: parseInt(card.style.gridRowEnd.split(' ')[1]) };
     window.addEventListener('mousemove', onResize);
     window.addEventListener('mouseup', stopResize);
 }
@@ -415,12 +354,12 @@ function onResize(e) {
     const dy = e.clientY - resizeInfo.startY;
     const dW = Math.round(dx / (GRID_CELL_SIZE + GRID_GAP));
     const dH = Math.round(dy / (GRID_CELL_SIZE + GRID_GAP));
-    const newW = Math.max(6, resizeInfo.startW - dW);
-    const newH = Math.max(6, resizeInfo.startH + dH);
+    const newW = Math.max(4, resizeInfo.w + dW); // مینیمم عرض
+    const newH = Math.max(4, resizeInfo.h + dH);
     resizeInfo.card.style.gridColumnEnd = `span ${newW}`;
     resizeInfo.card.style.gridRowEnd = `span ${newH}`;
-    const actualWidthInPixels = (newW * GRID_CELL_SIZE) + ((newW - 1) * GRID_GAP) + HORIZONTAL_PIXEL_OFFSET;
-    resizeInfo.card.style.width = `${actualWidthInPixels}px`;
+    const pxWidth = (newW * GRID_CELL_SIZE) + ((newW - 1) * GRID_GAP) + HORIZONTAL_PIXEL_OFFSET;
+    resizeInfo.card.style.width = `${pxWidth}px`;
 }
 
 function stopResize() {
@@ -428,20 +367,51 @@ function stopResize() {
         const id = resizeInfo.card.dataset.id;
         layoutMap[id].w = parseInt(resizeInfo.card.style.gridColumnEnd.split(' ')[1]);
         layoutMap[id].h = parseInt(resizeInfo.card.style.gridRowEnd.split(' ')[1]);
-        saveLayoutToLocal();
+        localStorage.setItem(STORAGE_LAYOUT, JSON.stringify(layoutMap));
     }
     resizeInfo = null;
     window.removeEventListener('mousemove', onResize);
     window.removeEventListener('mouseup', stopResize);
 }
 
-// --- مدیریت Modal و فرم‌ها ---
+
+// --- پس زمینه ---
+
+async function applyBackground() {
+    const bgData = localStorage.getItem(STORAGE_BG);
+    const body = document.body;
+    body.style.backgroundSize = 'cover';
+    body.style.backgroundAttachment = 'fixed';
+    body.style.backgroundPosition = 'center';
+
+    if (bgData) {
+        body.style.backgroundImage = `url(${bgData})`;
+    } else {
+        // اگر عکسی نبود، پیش‌فرض را نشان بده
+        body.style.backgroundImage = `url(${DEFAULT_BG_PATH})`;
+    }
+}
+
+function handleBackgroundChange(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        const base64 = ev.target.result;
+        localStorage.setItem(STORAGE_BG, base64);
+        applyBackground(); // بلافاصله اعمال کن
+    };
+    reader.readAsDataURL(file);
+}
+
+
+// --- کنترل‌ها ---
 
 function setupEventListeners() {
-    // دکمه‌های اصلی
     const editBtn = document.getElementById('edit-mode-btn');
     const subControls = document.getElementById('sub-controls');
-    
+
     editBtn.addEventListener('click', () => {
         isEditMode = !isEditMode;
         editBtn.textContent = isEditMode ? '✅' : '✏️';
@@ -450,145 +420,23 @@ function setupEventListeners() {
         renderDashboard();
     });
 
-    // دکمه آپدیت از سرور (دکمه "کره زمین" در HTML)
-    const combinedOnlineImportBtn = document.getElementById('combined-online-import-btn');
-    combinedOnlineImportBtn.addEventListener('click', () => fetchFromGithubAndSave(false));
+    // دکمه ۱: فقط آپدیت بوکمارک (چیدمان حفظ شود)
+    document.getElementById('update-bookmarks-btn').addEventListener('click', () => updateFromGithub(false));
+    
+    // دکمه ۲: آپدیت کامل (ریست چیدمان)
+    document.getElementById('update-full-btn').addEventListener('click', () => updateFromGithub(true));
 
-    // دکمه افزودن کارت جدید
-    document.getElementById('add-card-btn').addEventListener('click', () => {
-        if (!isEditMode) return;
-        const name = prompt("نام کارت جدید:");
-        if (name) {
-            const newNode = {
-                id: generateId(),
-                title: name,
-                children: []
-            };
-            appData.push(newNode);
-            saveDataToLocal();
-            renderDashboard();
-        }
+    // دکمه ۳: ایمپورت تنظیمات
+    const importSettingsInput = document.getElementById('import-settings-file');
+    document.getElementById('import-settings-btn').addEventListener('click', () => {
+        if(isEditMode) importSettingsInput.click();
     });
-    
-    // دکمه‌های ایمپورت/اکسپورت (فقط برای فایل JSON)
-    document.getElementById('export-bookmarks-btn').addEventListener('click', () => {
-        const blob = new Blob([JSON.stringify(appData, null, 2)], {type : 'application/json'});
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'netcofe_bookmarks.json';
-        a.click();
+    importSettingsInput.addEventListener('change', handleImportSettings);
+
+    // دکمه ۴: تغییر پس‌زمینه
+    const bgInput = document.getElementById('background-file-input');
+    document.getElementById('set-background-btn').addEventListener('click', () => {
+        if(isEditMode) bgInput.click();
     });
-    
-    // پس زمینه
-    const setBgBtn = document.getElementById('set-background-btn');
-    const bgFileInput = document.getElementById('background-file-input');
-    
-    setBgBtn.addEventListener('click', () => isEditMode && bgFileInput.click());
-    bgFileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if(!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            localStorage.setItem(STORAGE_KEY_BG, ev.target.result);
-            applySavedBackground();
-        };
-        reader.readAsDataURL(file);
-    });
-
-    // Modal Events
-    const modal = document.getElementById('bookmark-modal');
-    document.getElementById('cancel-btn').addEventListener('click', () => modal.classList.add('hidden'));
-    document.getElementById('bookmark-form').addEventListener('submit', handleModalSubmit);
-    document.getElementById('delete-btn').addEventListener('click', handleModalDelete);
-    document.getElementById('bookmark-type').addEventListener('change', () => {
-        const type = document.getElementById('bookmark-type').value;
-        document.getElementById('url-field-group').style.display = type === 'bookmark' ? 'block' : 'none';
-    });
-    
-    // دکمه مدیریت بوکمارک (در وب معنی ندارد، مخفی یا غیرفعال شود بهتر است، اما اینجا لینک خالی میگذاریم)
-    document.getElementById('goto-bookmarks-btn').style.display = 'none'; 
-}
-
-// --- مدیریت Modal ---
-function openModal(parentId, item) {
-    const modal = document.getElementById('bookmark-modal');
-    document.getElementById('current-card-id').value = parentId;
-    document.getElementById('editing-item-id').value = item ? item.id : '';
-    document.getElementById('bookmark-name').value = item ? item.title : '';
-    document.getElementById('bookmark-url').value = item && item.url ? item.url : '';
-    document.getElementById('bookmark-type').value = (item && !item.url) ? 'folder' : 'bookmark';
-    
-    document.getElementById('url-field-group').style.display = (item && !item.url) ? 'none' : 'block';
-    document.getElementById('delete-btn').classList.toggle('hidden', !item);
-    
-    modal.classList.remove('hidden');
-}
-
-function handleModalSubmit(e) {
-    e.preventDefault();
-    const parentId = document.getElementById('current-card-id').value;
-    const itemId = document.getElementById('editing-item-id').value;
-    const type = document.getElementById('bookmark-type').value;
-    const name = document.getElementById('bookmark-name').value;
-    const url = document.getElementById('bookmark-url').value;
-    
-    // پیدا کردن والد برای ویرایش یا افزودن
-    const parentNode = findNode(appData, parentId);
-    if (!parentNode) return;
-
-    if (itemId) {
-        // ویرایش
-        const item = findNode(parentNode.children, itemId);
-        if (item) {
-            item.title = name;
-            if (type === 'bookmark') item.url = url;
-            else delete item.url;
-        }
-    } else {
-        // جدید
-        const newItem = {
-            id: generateId(),
-            title: name
-        };
-        if (type === 'bookmark') newItem.url = url;
-        else newItem.children = [];
-        
-        parentNode.children = parentNode.children || [];
-        parentNode.children.push(newItem);
-    }
-    
-    saveDataToLocal();
-    document.getElementById('bookmark-modal').classList.add('hidden');
-    renderDashboard();
-}
-
-function handleModalDelete() {
-    const parentId = document.getElementById('current-card-id').value;
-    const itemId = document.getElementById('editing-item-id').value;
-    
-    if (confirm("آیا مطمئن هستید؟")) {
-        const parentNode = findNode(appData, parentId);
-        if (parentNode && parentNode.children) {
-            parentNode.children = parentNode.children.filter(c => c.id !== itemId);
-            saveDataToLocal();
-            document.getElementById('bookmark-modal').classList.add('hidden');
-            renderDashboard();
-        }
-    }
-}
-
-// --- پس زمینه ---
-async function applySavedBackground() {
-    const bgData = localStorage.getItem(STORAGE_KEY_BG);
-    const body = document.body;
-    body.style.backgroundRepeat = 'no-repeat';
-    body.style.backgroundPosition = 'center center';
-    body.style.backgroundSize = 'cover';
-    body.style.backgroundAttachment = 'fixed';
-    
-    if (bgData) {
-        body.style.backgroundImage = `url(${bgData})`;
-    } else {
-        body.style.backgroundImage = `url(${DEFAULT_BG_IMAGE_PATH})`;
-    }
+    bgInput.addEventListener('change', handleBackgroundChange);
 }
