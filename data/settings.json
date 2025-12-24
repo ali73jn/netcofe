@@ -1,39 +1,39 @@
 {
   "layout": {
     "سایت های کاربردی ": {
-      "col": 1,
+      "col": 22,
       "row": 1,
-      "w": 12,
-      "h": 29,
-      "view": "list"
+      "w": 26,
+      "h": 23,
+      "view": "grid"
     },
     "سایت های پرکاربرد": {
-      "col": 23,
+      "col": 2,
       "row": 1,
       "w": 20,
-      "h": 20,
+      "h": 32,
       "view": "grid"
     },
     "--ابزار ها--": {
-      "col": 45,
-      "row": 1,
-      "w": 23,
-      "h": 10,
-      "view": "list"
+      "col": 22,
+      "row": 25,
+      "w": 49,
+      "h": 8,
+      "view": "grid"
     },
     "فیلم و سریال": {
-      "col": 15,
-      "row": 23,
-      "w": 28,
-      "h": 6,
+      "col": 48,
+      "row": 17,
+      "w": 22,
+      "h": 7,
       "view": "list"
     },
     "شبکه اجتماعی": {
-      "col": 14,
+      "col": 48,
       "row": 1,
-      "w": 8,
-      "h": 20,
-      "view": "list"
+      "w": 22,
+      "h": 15,
+      "view": "grid"
     },
     "خودم": {
       "col": 48,
@@ -47,5 +47,7 @@
   "background": null,
   "customUrls": null,
   "settings": null,
-  "currentPaths": {}
+  "currentPaths": {
+    "سایت های کاربردی ": []
+  }
 }
