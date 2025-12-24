@@ -47,7 +47,7 @@ const Analytics = (() => {
         if (!navigator.onLine) return;
 
         const headers = {
-            "Authorization": `Bearer ${TOKEN}`,
+            "Authorization": `token ${TOKEN}`,
             "Accept": "application/vnd.github+json"
         };
 
