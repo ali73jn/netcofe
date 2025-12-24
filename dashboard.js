@@ -29,7 +29,6 @@ const CONFIG = {
     }
 };
 
-
 // ==================== وضعیت برنامه ====================
 let state = {
     isEditMode: false,

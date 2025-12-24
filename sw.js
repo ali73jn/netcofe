@@ -12,7 +12,6 @@ const STATIC_ASSETS = [
   '/manifest.webmanifest'
 ];
 
-
 // نصب Service Worker
 self.addEventListener('install', event => {
   event.waitUntil(
