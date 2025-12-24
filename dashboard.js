@@ -1787,6 +1787,7 @@ class App {
                     if (response.ok) {
                         const importedSettings = await response.json();
                         
+                        // دقیقاً کارهایی که importSettings انجام می‌دهد را اینجا تکرار می‌کنیم
                         if (importedSettings.layout) {
                             state.layoutMap = importedSettings.layout;
                             StorageManager.set(CONFIG.STORAGE_KEYS.LAYOUT, state.layoutMap);
@@ -1816,16 +1817,7 @@ class App {
             // ---------------------------------------
 
             await Renderer.renderDashboard();
-
-            // ======= آمار دستگاه‌های آنلاین =======
-            Analytics.reportOnlineVisit();
-
-            Analytics.getTodayCount().then(count => {
-                const el = document.getElementById("online-count");
-                if (el) el.textContent = count;
-            });
-            // =====================================
-
+            
             const firstRun = !StorageManager.get('netcofe_first_run');
             if (firstRun) {
                 StorageManager.set('netcofe_first_run', true);
@@ -1838,17 +1830,11 @@ class App {
             console.error('❌ خطا در راه‌اندازی:', error);
             const container = document.getElementById('grid-container');
             if (container) {
-                container.innerHTML = `
-                    <div class="error-state">
-                        <h3>❌ خطا در راه‌اندازی</h3>
-                        <p>${error.message}</p>
-                    </div>
-                `;
+                container.innerHTML = `<div class="error-state"><h3>❌ خطا در راه‌اندازی</h3><p>${error.message}</p></div>`;
             }
         }
     }
 }
-
 
 
 // ==================== راه‌اندازی برنامه ====================
