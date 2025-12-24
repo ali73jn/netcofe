@@ -2,7 +2,7 @@ const Analytics = (() => {
 
     const OWNER = "ali73jn";
     const REPO = "bookmark-analytics";
-    const TOKEN = "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";
+    const TOKEN = "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";
 
     function getDeviceId() {
         let id = localStorage.getItem("device_id");
