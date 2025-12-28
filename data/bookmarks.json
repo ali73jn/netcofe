@@ -8,19 +8,19 @@
       "children": []
     },
 	{
-	  "id": "notes_widget",
+	  "id": "5417",
 	  "title": "یادداشت‌های روزانه",
 	  "type": "folder",
 	  "category": "ویجت‌ها",
 	  "children": []
 	},
 	{
-	  "id": "calendar_widget", 
+	  "id": "9898", 
 	  "title": "تقویم شمسی",
 	  "type": "folder",
 	  "category": "ویجت‌ها",
 	  "children": []
-	}
+	},
     {
       "id": "3848",
       "title": "سایت های پرکاربرد",
