@@ -1025,9 +1025,9 @@ static renderBreadcrumbs(breadcrumbsEl, category, currentPath, allItems) {
             
             // جداکننده
             const separator = document.createElement('span');
-            separator.textContent = ' › ';
+            separator.textContent = '›';
             separator.style.margin = '0 8px';
-            separator.style.color = '#666';
+            separator.style.color = '#ff0000';
             breadcrumbsEl.appendChild(separator);
             
             // پیدا کردن نام پوشه
@@ -1067,12 +1067,13 @@ static createBreadcrumbButton(text, path, context) {
     Object.assign(button.style, {
         background: 'none',
         border: 'none',
-        color: 'var(--primary-color, #007bff)',
+        color: '#3b82f6',
         cursor: 'pointer',
-        padding: '4px 8px',
+        padding: '2px 8px',
         margin: '0 2px',
         fontSize: '14px',
-        fontFamily: 'inherit',
+        fontFamily: '"Vazirmatn", Tahoma, sans-serif',
+		fontWeight: '400',
         textDecoration: 'underline'
     });
     
@@ -1131,9 +1132,6 @@ static navigateToPath(category, newPath) {
     // رندر مجدد
     this.renderDashboard();
 }
-
-
-
 
 static async createTile(item, viewMode, category, currentPath) {
     try {
@@ -1315,9 +1313,6 @@ static addControlButtons(breadcrumbs, category, currentPath) {
     
     console.log('تعداد دکمه‌های اضافه شده:', breadcrumbs.querySelectorAll('.card-control-btn').length);
 }
-
-
-
 
     static openAddModal(category, currentPath) {
         const modal = document.getElementById('bookmark-modal');
@@ -1834,7 +1829,6 @@ class App {
         }
     }
 }
-
 
 // ==================== راه‌اندازی برنامه ====================
 document.addEventListener('DOMContentLoaded', () => {
