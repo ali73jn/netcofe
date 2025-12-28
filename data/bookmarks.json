@@ -7,6 +7,20 @@
       "category": "ویجت‌ها",
       "children": []
     },
+	{
+	  "id": "notes_widget",
+	  "title": "یادداشت‌های روزانه",
+	  "type": "folder",
+	  "category": "ویجت‌ها",
+	  "children": []
+	},
+	{
+	  "id": "calendar_widget", 
+	  "title": "تقویم شمسی",
+	  "type": "folder",
+	  "category": "ویجت‌ها",
+	  "children": []
+	}
     {
       "id": "3848",
       "title": "سایت های پرکاربرد",
