@@ -1130,3 +1130,196 @@ html, body {
     width: 100% !important;
     box-sizing: border-box !important;
 }
+
+
+
+/* ==================== استایل ویجت‌ها ==================== */
+
+/* ویجت ساعت و تاریخ */
+.widget-clock {
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 40, 80, 0.8) 100%) !important;
+    backdrop-filter: blur(15px) !important;
+    border: 2px solid rgba(100, 200, 255, 0.3) !important;
+    border-radius: 16px !important;
+}
+
+.clock-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    padding: 20px;
+    text-align: center;
+    color: white;
+    gap: 15px;
+}
+
+.clock-time {
+    font-size: 3.2em;
+    font-weight: 700;
+    margin-bottom: 5px;
+    font-family: 'Vazirmatn', 'Tahoma', monospace;
+    text-shadow: 0 0 20px rgba(0, 200, 255, 0.7);
+    letter-spacing: 1px;
+}
+
+.clock-date {
+    font-size: 1.5em;
+    margin-bottom: 10px;
+    opacity: 0.9;
+    font-weight: 500;
+}
+
+.clock-jalali {
+    font-size: 1.3em;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 10px 20px;
+    border-radius: 12px;
+    width: 100%;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.clock-hijri {
+    font-size: 1.1em;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 8px 16px;
+    border-radius: 10px;
+    width: 100%;
+    opacity: 0.9;
+}
+
+.clock-extra {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    margin-top: 10px;
+    font-size: 0.9em;
+    opacity: 0.8;
+}
+
+.clock-day {
+    background: rgba(0, 150, 255, 0.3);
+    padding: 5px 12px;
+    border-radius: 8px;
+}
+
+.clock-year {
+    background: rgba(255, 150, 0, 0.3);
+    padding: 5px 12px;
+    border-radius: 8px;
+}
+
+/* ویجت عمومی */
+.widget-card {
+    background: rgba(255, 255, 255, 0.9) !important;
+    backdrop-filter: blur(10px) !important;
+    border: 2px solid rgba(0, 0, 0, 0.1) !important;
+    border-radius: 12px !important;
+}
+
+[data-theme="dark"] .widget-card {
+    background: rgba(30, 30, 30, 0.9) !important;
+    border: 2px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.widget-container {
+    padding: 15px;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.widget-title {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-bottom: 15px;
+    color: var(--primary-color);
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 8px;
+}
+
+.widget-content {
+    font-size: 1em;
+    line-height: 1.6;
+}
+
+/* ویجت آب و هوا (نمونه) */
+.weather-widget {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+}
+
+.weather-temp {
+    font-size: 3em;
+    font-weight: bold;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.weather-desc {
+    font-size: 1.2em;
+    margin-top: 5px;
+}
+
+/* حالت تاریک برای ویجت‌ها */
+[data-theme="dark"] .widget-clock {
+    background: linear-gradient(135deg, rgba(20, 20, 20, 0.9) 0%, rgba(40, 40, 60, 0.9) 100%) !important;
+    border: 2px solid rgba(100, 150, 255, 0.2) !important;
+}
+
+[data-theme="dark"] .clock-container {
+    color: #f0f0f0;
+}
+
+[data-theme="dark"] .clock-jalali {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="dark"] .clock-hijri {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* ریسپانسیو ویجت‌ها */
+@media (max-width: 768px) {
+    .clock-time {
+        font-size: 2.5em;
+    }
+    
+    .clock-date {
+        font-size: 1.2em;
+    }
+    
+    .clock-jalali {
+        font-size: 1.1em;
+        padding: 8px 15px;
+    }
+    
+    .clock-hijri {
+        font-size: 1em;
+        padding: 6px 12px;
+    }
+    
+    .widget-container {
+        padding: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .clock-time {
+        font-size: 2em;
+    }
+    
+    .clock-date {
+        font-size: 1em;
+    }
+    
+    .clock-jalali {
+        font-size: 0.9em;
+    }
+    
+    .clock-hijri {
+        font-size: 0.8em;
+    }
+}
+

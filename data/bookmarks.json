@@ -1,6 +1,14 @@
 {
   "bookmarks": [
     {
+      "id": "clock_widget",
+      "title": "ساعت و تاریخ",
+      "type": "folder", 
+      "category": "ویجت‌ها",
+      "description": "نمایش زمان و تاریخ شمسی، میلادی و قمری",
+      "children": []
+    },
+    {
       "id": "3848",
       "title": "سایت های پرکاربرد",
       "type": "folder",
@@ -64,7 +72,7 @@
           "id": "3856",
           "title": "سها(کمیته امداد)",
           "type": "bookmark",
-          "url": "https://soha.emdad.ir/mis/emdad/r/900/main"
+          "url": "https://soha.emdad.ir/mis/r/900/main"
         },
         {
           "id": "3855",

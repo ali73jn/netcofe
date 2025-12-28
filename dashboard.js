@@ -429,6 +429,280 @@ class BackgroundManager {
     }
 }
 
+
+
+
+
+
+// ==================== مدیریت ویجت‌ها ====================
+class WidgetManager {
+    static async createWidget(category, items, layout, container) {
+        // بررسی نوع ویجت
+        const widgetType = this.detectWidgetType(category, items);
+        
+        switch(widgetType) {
+            case 'clock':
+                return this.createClockWidget(category, layout, container);
+            case 'weather':
+                return this.createWeatherWidget(category, layout, container);
+            case 'notes':
+                return this.createNotesWidget(category, layout, container);
+            case 'calendar':
+                return this.createCalendarWidget(category, layout, container);
+            default:
+                return null;
+        }
+    }
+    
+    static detectWidgetType(category, items) {
+        // تشخیص نوع ویجت بر اساس عنوان دسته‌بندی یا محتوا
+        const categoryLower = category.toLowerCase();
+        
+        if (categoryLower.includes('ساعت') || categoryLower.includes('زمان')) {
+            return 'clock';
+        } else if (categoryLower.includes('آب و هوا') || categoryLower.includes('هوا')) {
+            return 'weather';
+        } else if (categoryLower.includes('یادداشت') || categoryLower.includes('نوت')) {
+            return 'notes';
+        } else if (categoryLower.includes('تقویم') || categoryLower.includes('کالندر')) {
+            return 'calendar';
+        }
+        
+        // یا اگر آیتم خاصی برای ویجت وجود دارد
+        if (items && items.length === 1 && items[0].widgetType) {
+            return items[0].widgetType;
+        }
+        
+        return null;
+    }
+    
+    static createClockWidget(category, layout, container) {
+        const card = document.createElement('div');
+        card.className = 'bookmark-card widget-clock';
+        card.dataset.category = category;
+        card.dataset.widgetType = 'clock';
+        
+        // تنظیم موقعیت و ابعاد
+        card.style.gridColumnStart = layout.col;
+        card.style.gridRowStart = layout.row;
+        card.style.gridColumnEnd = `span ${layout.w}`;
+        card.style.gridRowEnd = `span ${layout.h}`;
+        
+        card.innerHTML = `
+            <div class="card-header">
+                <div class="card-title">${category}</div>
+                <button class="card-btn btn-drag visible-on-edit">::</button>
+            </div>
+            <div class="card-content">
+                <div class="clock-container" id="clock-widget-${category.replace(/\s+/g, '-')}">
+                    <div class="clock-time">--:--:--</div>
+                    <div class="clock-date">--- --- --</div>
+                    <div class="clock-jalali">تاریخ شمسی: بارگذاری...</div>
+                    <div class="clock-hijri">تاریخ قمری: بارگذاری...</div>
+                    <div class="clock-extra">
+                        <div class="clock-day">روز: --</div>
+                        <div class="clock-year">سال: ----</div>
+                    </div>
+                </div>
+            </div>
+            <div class="resize-handle visible-on-edit"></div>
+        `;
+        
+        // افزودن رویدادهای درگ و رزایز
+        const dragBtn = card.querySelector('.btn-drag');
+        const resizeEl = card.querySelector('.resize-handle');
+        
+        if (dragBtn) {
+            dragBtn.addEventListener('mousedown', (e) => DragResizeManager.startDrag(e, card));
+        }
+        
+        if (resizeEl) {
+            resizeEl.addEventListener('mousedown', (e) => DragResizeManager.startResize(e, card));
+        }
+        
+        // راه‌اندازی ویجت ساعت
+        this.setupClockWidget(category);
+        
+        container.appendChild(card);
+        return card;
+    }
+    
+    static setupClockWidget(category) {
+        const containerId = `clock-widget-${category.replace(/\s+/g, '-')}`;
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        
+        const updateClock = () => {
+            const now = new Date();
+            
+            // زمان فارسی
+            const time = now.toLocaleTimeString('fa-IR');
+            
+            // تاریخ فارسی
+            const date = now.toLocaleDateString('fa-IR', { 
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            
+            // تاریخ شمسی (جلالی)
+            let jalaliDate = '----/--/--';
+            let jalaliYear = '----';
+            if (typeof jalaali !== 'undefined') {
+                const jd = jalaali.toJalaali(now.getFullYear(), now.getMonth() + 1, now.getDate());
+                jalaliDate = `${jd.jy}/${jd.jm.toString().padStart(2, '0')}/${jd.jd.toString().padStart(2, '0')}`;
+                jalaliYear = jd.jy;
+            } else if (typeof moment !== 'undefined' && moment.jIsJalaali) {
+                jalaliDate = moment(now).format('jYYYY/jMM/jDD');
+                jalaliYear = moment(now).format('jYYYY');
+            }
+            
+            // تاریخ قمری (هجری)
+            let hijriDate = '----/--/--';
+            if (typeof HijriDate !== 'undefined') {
+                const hd = new HijriDate(now);
+                hijriDate = `${hd.year}/${hd.month.toString().padStart(2, '0')}/${hd.date.toString().padStart(2, '0')}`;
+            }
+            
+            // نام روز
+            const days = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه', 'شنبه'];
+            const dayName = days[now.getDay()];
+            
+            // به‌روزرسانی عناصر
+            const timeEl = container.querySelector('.clock-time');
+            const dateEl = container.querySelector('.clock-date');
+            const jalaliEl = container.querySelector('.clock-jalali');
+            const hijriEl = container.querySelector('.clock-hijri');
+            const dayEl = container.querySelector('.clock-day');
+            const yearEl = container.querySelector('.clock-year');
+            
+            if (timeEl) timeEl.textContent = time;
+            if (dateEl) dateEl.textContent = date;
+            if (jalaliEl) jalaliEl.textContent = `تاریخ شمسی: ${jalaliDate}`;
+            if (hijriEl) hijriEl.textContent = `تاریخ قمری: ${hijriDate}`;
+            if (dayEl) dayEl.textContent = `روز: ${dayName}`;
+            if (yearEl) yearEl.textContent = `سال: ${jalaliYear}`;
+        };
+        
+        // بروزرسانی اولیه و سپس هر ثانیه
+        updateClock();
+        setInterval(updateClock, 1000);
+    }
+    
+    static createWeatherWidget(category, layout, container) {
+        const card = document.createElement('div');
+        card.className = 'bookmark-card weather-widget';
+        card.dataset.category = category;
+        card.dataset.widgetType = 'weather';
+        
+        card.style.gridColumnStart = layout.col;
+        card.style.gridRowStart = layout.row;
+        card.style.gridColumnEnd = `span ${layout.w}`;
+        card.style.gridRowEnd = `span ${layout.h}`;
+        
+        card.innerHTML = `
+            <div class="card-header">
+                <div class="card-title">${category}</div>
+                <button class="card-btn btn-drag visible-on-edit">::</button>
+            </div>
+            <div class="card-content">
+                <div class="widget-container">
+                    <div class="weather-temp">--°C</div>
+                    <div class="weather-desc">در حال بارگذاری...</div>
+                    <div class="weather-location">تهران، ایران</div>
+                    <div class="weather-details">
+                        <div>رطوبت: --%</div>
+                        <div>باد: -- کیلومتر/ساعت</div>
+                    </div>
+                </div>
+            </div>
+            <div class="resize-handle visible-on-edit"></div>
+        `;
+        
+        // TODO: افزودن API آب و هوا
+        // this.setupWeatherWidget(category);
+        
+        return card;
+    }
+    
+    static createNotesWidget(category, layout, container) {
+        const card = document.createElement('div');
+        card.className = 'bookmark-card widget-card';
+        card.dataset.category = category;
+        card.dataset.widgetType = 'notes';
+        
+        card.style.gridColumnStart = layout.col;
+        card.style.gridRowStart = layout.row;
+        card.style.gridColumnEnd = `span ${layout.w}`;
+        card.style.gridRowEnd = `span ${layout.h}`;
+        
+        card.innerHTML = `
+            <div class="card-header">
+                <div class="card-title">${category}</div>
+                <button class="card-btn btn-drag visible-on-edit">::</button>
+            </div>
+            <div class="card-content">
+                <div class="widget-container">
+                    <div class="widget-title">یادداشت‌ها</div>
+                    <div class="widget-content">
+                        <textarea placeholder="یادداشت خود را اینجا بنویسید..." 
+                                  style="width:100%; height:150px; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--light-color); color:var(--text-color);"></textarea>
+                        <button style="margin-top:10px; padding:8px 16px; background:var(--primary-color); color:white; border:none; border-radius:6px;">ذخیره</button>
+                    </div>
+                </div>
+            </div>
+            <div class="resize-handle visible-on-edit"></div>
+        `;
+        
+        return card;
+    }
+    
+    static createCalendarWidget(category, layout, container) {
+        const card = document.createElement('div');
+        card.className = 'bookmark-card widget-card';
+        card.dataset.category = category;
+        card.dataset.widgetType = 'calendar';
+        
+        card.style.gridColumnStart = layout.col;
+        card.style.gridRowStart = layout.row;
+        card.style.gridColumnEnd = `span ${layout.w}`;
+        card.style.gridRowEnd = `span ${layout.h}`;
+        
+        const today = new Date();
+        const monthNames = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 
+                          'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
+        
+        card.innerHTML = `
+            <div class="card-header">
+                <div class="card-title">${category}</div>
+                <button class="card-btn btn-drag visible-on-edit">::</button>
+            </div>
+            <div class="card-content">
+                <div class="widget-container">
+                    <div class="widget-title">تقویم ${monthNames[today.getMonth()]} ${today.getFullYear() + 621}</div>
+                    <div class="widget-content">
+                        <div style="text-align:center; font-size:2em; padding:10px;">
+                            ${today.getDate()}
+                        </div>
+                        <div style="text-align:center; color:var(--secondary-color);">
+                            ${today.toLocaleDateString('fa-IR', { weekday: 'long' })}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="resize-handle visible-on-edit"></div>
+        `;
+        
+        return card;
+    }
+}
+
+
+
+
+
+
 // ==================== Drag & Resize System ====================
 class DragResizeManager {
     static startDrag(e, card) {
@@ -738,7 +1012,17 @@ class Renderer {
             };
             
             state.layoutMap[category] = layout;
-            this.createCard(category, items, layout, container);
+            
+            // بررسی آیا این یک ویجت است؟
+            const widgetType = WidgetManager.detectWidgetType(category, items);
+            
+            if (widgetType) {
+                // ایجاد ویجت
+                WidgetManager.createWidget(category, items, layout, container);
+            } else {
+                // ایجاد کارت معمولی
+                this.createCard(category, items, layout, container);
+            }
         });
         
         // ذخیره layout جدید
@@ -749,6 +1033,8 @@ class Renderer {
             this.applySearchFilter(state.searchTerm);
         }
     }
+    
+    // ... بقیه توابع بدون تغییر
 
 // در کلاس Renderer این تابع رو عوض کن:
 static categorizeBookmarks(bookmarks) {
@@ -1190,20 +1476,12 @@ static async createTile(item, viewMode, category, currentPath) {
         nameDiv.textContent = item.title;
         nameDiv.title = item.description || item.title;
         
-        // ⚠️ حذف کامل بخش دکمه ویرایش از tile
-        // const editBtn = document.createElement("div");
-        // editBtn.className = "tile-edit-btn";
-        // editBtn.textContent = "✏️";
-        // editBtn.title = "ویرایش";
-        // ... کدهای event listener حذف شد
+        // ⚠️ دکمه ویرایش حذف شده
         
         tile.appendChild(img);
         tile.appendChild(nameDiv);
         
-        // ⚠️ حذف اضافه کردن دکمه ویرایش به tile
-        // if (state.isEditMode) {
-        //     tile.appendChild(editBtn);
-        // }
+        // ⚠️ دکمه ویرایش به tile اضافه نمی‌شود
         
         return tile;
     } catch (error) {
@@ -1224,13 +1502,10 @@ static addControlButtons(breadcrumbs, category, currentPath) {
     // فقط اگر در حالت ویرایش هستیم دکمه‌ها رو اضافه کن
     if (!state.isEditMode) return;
     
-    // ⚠️ حذف دکمه حذف دسته‌بندی
-    // ❌ کدهای مربوط به delBtn حذف شد
+    // ⚠️ دکمه حذف دسته‌بندی حذف شد
+    // ⚠️ دکمه افزودن آیتم حذف شد
     
-    // ⚠️ حذف دکمه افزودن آیتم
-    // ➕ کدهای مربوط به addBtn حذف شد
-    
-    // 3. دکمه تغییر حالت نمایش - باقی می‌ماند
+    // 1. دکمه تغییر حالت نمایش - باقی می‌ماند
     const viewBtn = document.createElement('button');
     viewBtn.className = "card-control-btn btn-view-crumb";
     viewBtn.innerHTML = "👁️";
@@ -1251,7 +1526,7 @@ static addControlButtons(breadcrumbs, category, currentPath) {
     
     breadcrumbs.appendChild(viewBtn);
     
-    // 4. دکمه برگشت (اگر در پوشه‌ای هستیم) - باقی می‌ماند
+    // 2. دکمه برگشت (اگر در پوشه‌ای هستیم) - باقی می‌ماند
     if (currentPath && currentPath.length > 0) {
         const backBtn = document.createElement('button');
         backBtn.className = "card-control-btn btn-back-crumb";
@@ -1775,3 +2050,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('offline', updateOnlineStatus);
     updateOnlineStatus();
 });
+
+
+
