@@ -527,68 +527,118 @@ class WidgetManager {
         return card;
     }
     
-    static setupClockWidget(category) {
-        const containerId = `clock-widget-${category.replace(/\s+/g, '-')}`;
-        const container = document.getElementById(containerId);
-        if (!container) return;
+  // در کلاس WidgetManager، تابع setupClockWidget را به این صورت تغییر دهید:
+
+static setupClockWidget(category) {
+    const containerId = `clock-widget-${category.replace(/\s+/g, '-')}`;
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    const updateClock = () => {
+        const now = new Date();
         
-        const updateClock = () => {
-            const now = new Date();
-            
-            // زمان فارسی
-            const time = now.toLocaleTimeString('fa-IR');
-            
-            // تاریخ فارسی
-            const date = now.toLocaleDateString('fa-IR', { 
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-            
-            // تاریخ شمسی (جلالی)
-            let jalaliDate = '----/--/--';
-            let jalaliYear = '----';
-            if (typeof jalaali !== 'undefined') {
-                const jd = jalaali.toJalaali(now.getFullYear(), now.getMonth() + 1, now.getDate());
-                jalaliDate = `${jd.jy}/${jd.jm.toString().padStart(2, '0')}/${jd.jd.toString().padStart(2, '0')}`;
-                jalaliYear = jd.jy;
-            } else if (typeof moment !== 'undefined' && moment.jIsJalaali) {
-                jalaliDate = moment(now).format('jYYYY/jMM/jDD');
-                jalaliYear = moment(now).format('jYYYY');
-            }
-            
-            // تاریخ قمری (هجری)
-            let hijriDate = '----/--/--';
-            if (typeof HijriDate !== 'undefined') {
-                const hd = new HijriDate(now);
-                hijriDate = `${hd.year}/${hd.month.toString().padStart(2, '0')}/${hd.date.toString().padStart(2, '0')}`;
-            }
-            
-            // نام روز
-            const days = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه', 'شنبه'];
-            const dayName = days[now.getDay()];
-            
-            // به‌روزرسانی عناصر
-            const timeEl = container.querySelector('.clock-time');
-            const dateEl = container.querySelector('.clock-date');
-            const jalaliEl = container.querySelector('.clock-jalali');
-            const hijriEl = container.querySelector('.clock-hijri');
-            const dayEl = container.querySelector('.clock-day');
-            const yearEl = container.querySelector('.clock-year');
-            
-            if (timeEl) timeEl.textContent = time;
-            if (dateEl) dateEl.textContent = date;
-            if (jalaliEl) jalaliEl.textContent = `تاریخ شمسی: ${jalaliDate}`;
-            if (hijriEl) hijriEl.textContent = `تاریخ قمری: ${hijriDate}`;
-            if (dayEl) dayEl.textContent = `روز: ${dayName}`;
-            if (yearEl) yearEl.textContent = `سال: ${jalaliYear}`;
-        };
+        // زمان فارسی
+        const time = now.toLocaleTimeString('fa-IR');
         
-        // بروزرسانی اولیه و سپس هر ثانیه
-        updateClock();
-        setInterval(updateClock, 1000);
+        // تاریخ فارسی
+        const date = now.toLocaleDateString('fa-IR', { 
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+        
+        // تاریخ شمسی (با تبدیل ساده - بدون کتابخانه)
+        let jalaliDate = this.convertToJalali(now);
+        
+        // تاریخ قمری (با تبدیل ساده - بدون کتابخانه)
+        let hijriDate = this.convertToHijri(now);
+        
+        // نام روز
+        const days = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه', 'شنبه'];
+        const dayName = days[now.getDay()];
+        
+        // سال شمسی
+        const jalaliYear = jalaliDate.split('/')[0];
+        
+        // به‌روزرسانی عناصر
+        const timeEl = container.querySelector('.clock-time');
+        const dateEl = container.querySelector('.clock-date');
+        const jalaliEl = container.querySelector('.clock-jalali');
+        const hijriEl = container.querySelector('.clock-hijri');
+        const dayEl = container.querySelector('.clock-day');
+        const yearEl = container.querySelector('.clock-year');
+        
+        if (timeEl) timeEl.textContent = time;
+        if (dateEl) dateEl.textContent = date;
+        if (jalaliEl) jalaliEl.textContent = `تاریخ شمسی: ${jalaliDate}`;
+        if (hijriEl) hijriEl.textContent = `تاریخ قمری: ${hijriDate}`;
+        if (dayEl) dayEl.textContent = `روز: ${dayName}`;
+        if (yearEl) yearEl.textContent = `سال: ${jalaliYear}`;
+    };
+    
+    // بروزرسانی اولیه و سپس هر ثانیه
+    updateClock();
+    setInterval(updateClock, 1000);
+}
+
+// تابع تبدیل به تاریخ شمسی (ساده)
+static convertToJalali(gregorianDate) {
+    const gYear = gregorianDate.getFullYear();
+    const gMonth = gregorianDate.getMonth() + 1;
+    const gDay = gregorianDate.getDate();
+    
+    // تبدیل تقریبی میلادی به شمسی
+    // این یک تبدیل ساده است - برای دقت بیشتر باید از کتابخانه استفاده شود
+    const jYear = gYear - 621;
+    const gy2 = (gYear % 4 === 0) ? 0 : 1;
+    let days = Math.floor((365 * (gYear - 1)) + (gYear / 4) - 79.33);
+    
+    if (gMonth > 2) days += 31;
+    if (gMonth > 3) days += (gy2 === 0 ? 29 : 28);
+    if (gMonth > 4) days += 31;
+    if (gMonth > 5) days += 30;
+    if (gMonth > 6) days += 31;
+    if (gMonth > 7) days += 30;
+    if (gMonth > 8) days += 31;
+    if (gMonth > 9) days += 30;
+    if (gMonth > 10) days += 31;
+    if (gMonth > 11) days += 30;
+    
+    days += gDay;
+    
+    const jd = Math.floor(days + 0.5);
+    const jYearTemp = Math.floor((jd - 0.5) / 365.242189) + 1;
+    const jd1 = Math.floor((jYearTemp - 1) * 365.242189 + 0.5);
+    const jd2 = jd - jd1;
+    
+    let jMonth, jDay;
+    if (jd2 <= 186) {
+        jMonth = Math.ceil(jd2 / 31);
+        jDay = jd2 - ((jMonth - 1) * 31);
+    } else {
+        const jd3 = jd2 - 186;
+        jMonth = Math.ceil(jd3 / 30) + 6;
+        jDay = jd3 - ((jMonth - 7) * 30);
     }
+    
+    return `${jYearTemp}/${jMonth.toString().padStart(2, '0')}/${jDay.toString().padStart(2, '0')}`;
+}
+
+// تابع تبدیل به تاریخ قمری (ساده)
+static convertToHijri(gregorianDate) {
+    const gYear = gregorianDate.getFullYear();
+    const gMonth = gregorianDate.getMonth() + 1;
+    const gDay = gregorianDate.getDate();
+    
+    // تبدیل تقریبی میلادی به قمری
+    // این یک تبدیل ساده است
+    const hYear = Math.floor((gYear - 622) * 1.0307);
+    const hMonth = gMonth;
+    const hDay = gDay;
+    
+    return `${hYear}/${hMonth.toString().padStart(2, '0')}/${hDay.toString().padStart(2, '0')}`;
+} 
     
     static createWeatherWidget(category, layout, container) {
         const card = document.createElement('div');
