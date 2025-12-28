@@ -393,10 +393,10 @@ html, body {
     opacity: 0.9 !important;
 }
 
-/* مخفی کردن دکمه‌ها در حالت عادی */
+/* مخفی کردن دکمه‌ها در حالت عادی 
 .card-control-btn {
     display: none !important;
-}
+}*/
 
 /* ==================== حالت ویرایش ==================== */
 .editing-mode .bookmark-card {
@@ -411,7 +411,7 @@ html, body {
     opacity: 0.6 !important;
     pointer-events: auto !important;
 }
-
+/*
 .editing-mode .tile .tile-edit-btn {
     opacity: 1 !important;
     pointer-events: auto !important;
@@ -421,7 +421,7 @@ html, body {
     opacity: 1 !important;
     pointer-events: auto !important;
 }
-
+*/
 /* ==================== ریسپانسیو برای Breadcrumb ==================== 
 @media (max-width: 768px) {
     .card-breadcrumbs {

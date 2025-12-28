@@ -1133,6 +1133,7 @@ static navigateToPath(category, newPath) {
     this.renderDashboard();
 }
 
+// در تابع createTile - حذف دکمه ویرایش از tileها
 static async createTile(item, viewMode, category, currentPath) {
     try {
         const isFolder = item.type === 'folder' || item.children;
@@ -1147,7 +1148,6 @@ static async createTile(item, viewMode, category, currentPath) {
             tile.addEventListener("click", (e) => {
                 e.preventDefault();
                 if (!state.isEditMode) {
-                    // وارد پوشه بشو
                     const newPath = [...(currentPath || []), item.id];
                     console.log('ورود به پوشه:', item.title, 'مسیر:', newPath);
                     this.navigateToPath(category, newPath);
@@ -1167,21 +1167,19 @@ static async createTile(item, viewMode, category, currentPath) {
         
         if (isFolder) {
             img.src = CONFIG.FOLDER_ICON_PATH;
-			
-		} else if (item.url) {
-        const customIcon = state.customIcons[item.url];
-        if (customIcon) {
-            img.src = customIcon; // استفاده از آیکون گیت‌هاب شما
-        } else {
-            img.src = CONFIG.FALLBACK_ICON_PATH;
-            setTimeout(async () => {
-                try {
-                    const icon = await FaviconManager.resolveFavicon(item.url);
-                    if (img && !customIcon) img.src = icon;
-                } catch (error) { console.error(error); }
-            }, 0);
-        }
-		
+        } else if (item.url) {
+            const customIcon = state.customIcons[item.url];
+            if (customIcon) {
+                img.src = customIcon;
+            } else {
+                img.src = CONFIG.FALLBACK_ICON_PATH;
+                setTimeout(async () => {
+                    try {
+                        const icon = await FaviconManager.resolveFavicon(item.url);
+                        if (img && !customIcon) img.src = icon;
+                    } catch (error) { console.error(error); }
+                }, 0);
+            }
         } else {
             img.src = CONFIG.FALLBACK_ICON_PATH;
         }
@@ -1190,29 +1188,22 @@ static async createTile(item, viewMode, category, currentPath) {
         const nameDiv = document.createElement("div");
         nameDiv.className = "tile-name";
         nameDiv.textContent = item.title;
-//		nameDiv.style.marginTop = "-12px"; 
-//        nameDiv.style.height = "35px";
-//        nameDiv.style.fontSize = "11px";
         nameDiv.title = item.description || item.title;
         
-        // دکمه ویرایش
-        const editBtn = document.createElement("div");
-        editBtn.className = "tile-edit-btn";
-        editBtn.textContent = "✏️";
-        editBtn.title = "ویرایش";
-        
-        editBtn.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            this.openEditModal(item, category, currentPath);
-        });
+        // ⚠️ حذف کامل بخش دکمه ویرایش از tile
+        // const editBtn = document.createElement("div");
+        // editBtn.className = "tile-edit-btn";
+        // editBtn.textContent = "✏️";
+        // editBtn.title = "ویرایش";
+        // ... کدهای event listener حذف شد
         
         tile.appendChild(img);
         tile.appendChild(nameDiv);
         
-        if (state.isEditMode) {
-            tile.appendChild(editBtn);
-        }
+        // ⚠️ حذف اضافه کردن دکمه ویرایش به tile
+        // if (state.isEditMode) {
+        //     tile.appendChild(editBtn);
+        // }
         
         return tile;
     } catch (error) {
@@ -1221,7 +1212,7 @@ static async createTile(item, viewMode, category, currentPath) {
     }
 }
 
-// ==================== تابع addControlButtons رو کامل بازنویسی می‌کنیم ====================
+// در تابع addControlButtons - فقط حذف دکمه‌های خاص
 static addControlButtons(breadcrumbs, category, currentPath) {
     if (!breadcrumbs) return;
     
@@ -1233,45 +1224,13 @@ static addControlButtons(breadcrumbs, category, currentPath) {
     // فقط اگر در حالت ویرایش هستیم دکمه‌ها رو اضافه کن
     if (!state.isEditMode) return;
     
-    // 1. دکمه حذف دسته‌بندی (فقط در ریشه)
-    if (!currentPath || currentPath.length === 0) {
-        const delBtn = document.createElement('button');
-        delBtn.className = "card-control-btn btn-del-crumb";
-        delBtn.innerHTML = "❌";
-        delBtn.title = "حذف این دسته‌بندی";
-        
-        delBtn.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log('کلیک روی حذف دسته‌بندی');
-            
-            if (confirm(`آیا از حذف دسته‌بندی "${category}" مطمئن هستید؟`)) {
-                delete state.layoutMap[category];
-                state.bookmarks = state.bookmarks.filter(b => b.category !== category);
-                delete state.currentPaths[category];
-                this.renderDashboard();
-            }
-        });
-        
-        breadcrumbs.appendChild(delBtn);
-    }
+    // ⚠️ حذف دکمه حذف دسته‌بندی
+    // ❌ کدهای مربوط به delBtn حذف شد
     
-    // 2. دکمه افزودن آیتم
-    const addBtn = document.createElement('button');
-    addBtn.className = "card-control-btn btn-add-crumb";
-    addBtn.innerHTML = "➕";
-    addBtn.title = "افزودن آیتم جدید";
+    // ⚠️ حذف دکمه افزودن آیتم
+    // ➕ کدهای مربوط به addBtn حذف شد
     
-    addBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        console.log('کلیک روی افزودن آیتم');
-        this.openAddModal(category, currentPath);
-    });
-    
-    breadcrumbs.appendChild(addBtn);
-    
-    // 3. دکمه تغییر حالت نمایش
+    // 3. دکمه تغییر حالت نمایش - باقی می‌ماند
     const viewBtn = document.createElement('button');
     viewBtn.className = "card-control-btn btn-view-crumb";
     viewBtn.innerHTML = "👁️";
@@ -1292,7 +1251,7 @@ static addControlButtons(breadcrumbs, category, currentPath) {
     
     breadcrumbs.appendChild(viewBtn);
     
-    // 4. دکمه برگشت (اگر در پوشه‌ای هستیم)
+    // 4. دکمه برگشت (اگر در پوشه‌ای هستیم) - باقی می‌ماند
     if (currentPath && currentPath.length > 0) {
         const backBtn = document.createElement('button');
         backBtn.className = "card-control-btn btn-back-crumb";
@@ -1314,81 +1273,50 @@ static addControlButtons(breadcrumbs, category, currentPath) {
     console.log('تعداد دکمه‌های اضافه شده:', breadcrumbs.querySelectorAll('.card-control-btn').length);
 }
 
-    static openAddModal(category, currentPath) {
-        const modal = document.getElementById('bookmark-modal');
-        if (!modal) return;
-        
-        // ذخیره اطلاعات موقعیت
-        modal.dataset.category = category;
-        modal.dataset.currentPath = JSON.stringify(currentPath || []);
-        
-        // ریست فرم
-        const form = document.getElementById('bookmark-form');
-        if (form) form.reset();
-        
-        const typeSelect = document.getElementById('bookmark-type');
-        const categoryInput = document.getElementById('bookmark-category');
-        
-        if (typeSelect) typeSelect.value = 'bookmark';
-        if (categoryInput) categoryInput.value = category;
-        
-        this.updateModalFields();
-        
-        // مخفی کردن دکمه حذف
-        const deleteBtn = document.getElementById('delete-btn');
-        if (deleteBtn) deleteBtn.classList.add('hidden');
-        
-        modal.classList.remove('hidden');
-        state.currentModal = 'add';
+// در کلاس EventManager - حذف event listenerهای مربوط به modal
+static setup() {
+    console.log('تنظیم رویدادها...');
+    
+    // دکمه حالت ویرایش - باقی می‌ماند
+    const editModeBtn = document.getElementById('edit-mode-btn');
+    if (editModeBtn) {
+        editModeBtn.addEventListener('click', () => {
+            state.isEditMode = !state.isEditMode;
+            const subControls = document.getElementById('sub-controls');
+            
+            editModeBtn.textContent = state.isEditMode ? '✅' : '✏️';
+            editModeBtn.title = state.isEditMode ? 'خروج از حالت ویرایش' : 'حالت ویرایش';
+            
+            if (subControls) {
+                if (state.isEditMode) {
+                    subControls.classList.remove('hidden-controls');
+                    subControls.classList.add('visible-controls');
+                } else {
+                    subControls.classList.remove('visible-controls');
+                    subControls.classList.add('hidden-controls');
+                }
+            }
+            
+            Renderer.renderDashboard();
+        });
     }
+    
+    // ⚠️ حذف event listenerهای مربوط به modal مدیریت بوکمارک
+    // const cancelBtn = document.getElementById('cancel-btn');
+    // const bookmarkForm = document.getElementById('bookmark-form');
+    // const deleteBtn = document.getElementById('delete-btn');
+    // const bookmarkType = document.getElementById('bookmark-type');
+    
+    // بقیه event listenerها باقی می‌مانند...
+    // ... کدهای مربوط به جستجو، تغییر تم، پس‌زمینه و غیره
+}
 
-    static openEditModal(item, category, currentPath) {
-        const modal = document.getElementById('bookmark-modal');
-        if (!modal) return;
-        
-        // ذخیره اطلاعات موقعیت
-        modal.dataset.category = category;
-        modal.dataset.currentPath = JSON.stringify(currentPath || []);
-        
-        const editingItemId = document.getElementById('editing-item-id');
-        if (editingItemId) editingItemId.value = item.id;
-        
-        // پر کردن فرم
-        const nameInput = document.getElementById('bookmark-name');
-        const urlInput = document.getElementById('bookmark-url');
-        const typeSelect = document.getElementById('bookmark-type');
-        const categoryInput = document.getElementById('bookmark-category');
-        const tagsInput = document.getElementById('bookmark-tags');
-        const descInput = document.getElementById('bookmark-description');
-        
-        if (nameInput) nameInput.value = item.title || '';
-        if (urlInput) urlInput.value = item.url || '';
-        if (typeSelect) typeSelect.value = item.type === 'folder' ? 'folder' : 'bookmark';
-        if (categoryInput) categoryInput.value = item.category || 'سایر';
-        if (tagsInput) tagsInput.value = item.tags ? item.tags.join(', ') : '';
-        if (descInput) descInput.value = item.description || '';
-        
-        this.updateModalFields();
-        
-        // نمایش دکمه حذف
-        const deleteBtn = document.getElementById('delete-btn');
-        if (deleteBtn) deleteBtn.classList.remove('hidden');
-        
-        modal.classList.remove('hidden');
-        state.currentModal = 'edit';
-    }
-
-    static updateModalFields() {
-        const typeSelect = document.getElementById('bookmark-type');
-        if (!typeSelect) return;
-        
-        const type = typeSelect.value;
-        const urlGroup = document.getElementById('url-field-group');
-        
-        if (urlGroup) {
-            urlGroup.style.display = type === 'bookmark' ? 'block' : 'none';
-        }
-    }
+// همچنین حذف توابع مربوط به modal از کلاس Renderer:
+/*
+static openAddModal() { ... } // حذف
+static openEditModal() { ... } // حذف
+static updateModalFields() { ... } // حذف
+*/
 
     static applySearchFilter(searchTerm) {
         const tiles = document.querySelectorAll('.tile');
