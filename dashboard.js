@@ -29,6 +29,54 @@ const CONFIG = {
     }
 };
 
+// ==================== تبدیل تاریخ میلادی به شمسی ====================
+function gregorianToJalali(gy, gm, gd) {
+    var g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+    var jy = (gy <= 1600) ? 0 : 979;
+    gy -= (gy <= 1600) ? 621 : 1600;
+    var gy2 = (gm > 2) ? (gy + 1) : gy;
+    var days = (365 * gy) + (parseInt((gy2 + 3) / 4)) - (parseInt((gy2 + 99) / 100)) + 
+               (parseInt((gy2 + 399) / 400)) - 80 + gd + g_d_m[gm - 1];
+    jy += 33 * (parseInt(days / 12053));
+    days %= 12053;
+    jy += 4 * (parseInt(days / 1461));
+    days %= 1461;
+    jy += parseInt((days - 1) / 365);
+    if (days > 365) days = (days - 1) % 365;
+    var jm = (days < 186) ? 1 + parseInt(days / 31) : 7 + parseInt((days - 186) / 30);
+    var jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30));
+    return [jy, jm, jd];
+}
+
+function getPersianDateTime() {
+    const now = new Date();
+    const jalali = gregorianToJalali(now.getFullYear(), now.getMonth() + 1, now.getDate());
+    
+    // نام ماه‌های شمسی
+    const persianMonths = [
+        'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
+        'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'
+    ];
+    
+    // روزهای هفته
+    const persianDays = [
+        'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه',
+        'پنجشنبه', 'جمعه', 'شنبه'
+    ];
+    
+    const dayOfWeek = now.getDay(); // 0-6 (یکشنبه=0)
+    
+    // فرمت زمان
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    
+    return {
+        date: `${jalali[2]} ${persianMonths[jalali[1] - 1]} ${jalali[0]}`,
+        day: persianDays[dayOfWeek],
+        time: `${hours}:${minutes}`
+    };
+}
+
 // ==================== وضعیت برنامه ====================
 let state = {
     isEditMode: false,
@@ -748,8 +796,87 @@ class Renderer {
         if (state.searchTerm) {
             this.applySearchFilter(state.searchTerm);
         }
+		
+		        // ایجاد کارت زمان و تاریخ
+        this.createDateTimeCard(container);
     }
 
+
+    // ==================== ایجاد کارت زمان و تاریخ ====================
+    static createDateTimeCard(container) {
+        const category = 'زمان و تاریخ';
+        const layout = state.layoutMap[category] || { 
+            col: 1, 
+            row: 1, 
+            w: 4, 
+            h: 3,
+            view: "list"
+        };
+        
+        state.layoutMap[category] = layout;
+        
+        const card = document.createElement('div');
+        card.className = 'bookmark-card datetime-card';
+        card.dataset.category = category;
+        
+        // تنظیم موقعیت و ابعاد
+        card.style.gridColumnStart = layout.col;
+        card.style.gridRowStart = layout.row;
+        
+        const actualWidthInPixels =
+            (layout.w * CONFIG.GRID_CELL_SIZE) +
+            ((layout.w - 1) * CONFIG.GRID_GAP) +
+            CONFIG.HORIZONTAL_PIXEL_OFFSET;
+        
+        card.style.width = `${actualWidthInPixels}px`;
+        card.style.gridColumnEnd = `span ${layout.w}`;
+        card.style.gridRowEnd = `span ${layout.h}`;
+        
+        // محتوای اولیه
+        const dateTime = getPersianDateTime();
+        card.innerHTML = `
+            <div class="card-header">
+                <div class="card-title">${category}</div>
+                <button class="card-btn btn-drag visible-on-edit">::</button>
+            </div>
+            <div class="card-content datetime-content">
+                <div class="persian-day">${dateTime.day}</div>
+                <div class="persian-date">${dateTime.date}</div>
+                <div class="persian-time">${dateTime.time}</div>
+            </div>
+            <div class="resize-handle visible-on-edit"></div>
+        `;
+        
+        // افزودن رویدادهای درگ و ریسایز
+        const dragBtn = card.querySelector('.btn-drag');
+        const resizeEl = card.querySelector('.resize-handle');
+        
+        if (dragBtn) {
+            dragBtn.addEventListener('mousedown', (e) => DragResizeManager.startDrag(e, card));
+        }
+        
+        if (resizeEl) {
+            resizeEl.addEventListener('mousedown', (e) => DragResizeManager.startResize(e, card));
+        }
+        
+        container.appendChild(card);
+        
+        // به‌روزرسانی زمان هر دقیقه
+        setInterval(() => {
+            const dateTime = getPersianDateTime();
+            const content = card.querySelector('.datetime-content');
+            if (content) {
+                content.innerHTML = `
+                    <div class="persian-day">${dateTime.day}</div>
+                    <div class="persian-date">${dateTime.date}</div>
+                    <div class="persian-time">${dateTime.time}</div>
+                `;
+            }
+        }, 60000); // هر دقیقه به‌روزرسانی شود
+    }
+	
+	
+	
 // در کلاس Renderer این تابع رو عوض کن:
 static categorizeBookmarks(bookmarks) {
     console.log('🔍 شروع دسته‌بندی بوکمارک‌ها:', bookmarks);
