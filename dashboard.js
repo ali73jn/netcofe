@@ -1001,8 +1001,9 @@ card.innerHTML = `
                     <div class="weather-row">
                         <div class="weather-label">دما:</div>
                         <div class="weather-value">
-                            <span id="weather-temp">--</span>
                             <span class="weather-unit">°C</span>
+							<span id="weather-temp">--</span>
+                            
                         </div>
                     </div>
                     
@@ -1449,6 +1450,7 @@ static loadCombinedStyles() {
         .combined-layout {
             display: flex;
             height: 100%;
+			gap: 35px;
         justify-content: space-between; /* این معجزه می‌کنه */
             direction: ltr;
         }
@@ -1546,7 +1548,7 @@ static loadCombinedStyles() {
         
         .weather-unit {
             font-size: 0.9rem;
-            color: #9ca3af;
+            color: #374151;
         }
         
         .city-change-btn {

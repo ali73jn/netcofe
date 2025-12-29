@@ -1138,3 +1138,27 @@ html, body {
 .editing-mode .city-change-btn.visible-on-edit {
     display: inline-block !important;
 }
+
+
+.datetime-weather-card .combined-layout {
+    gap: 5px !important;
+}
+
+.datetime-weather-card .weather-column {
+    flex: 1.5 !important;
+    margin-left: 0 !important;
+}
+
+.datetime-weather-card .time-column {
+    flex: 1 !important;
+    margin-right: 0 !important;
+}
+
+.datetime-weather-card .weather-label {
+    min-width: 40px !important;
+    font-size: 0.8rem !important;
+}
+
+.datetime-weather-card .weather-value {
+    font-size: 0.9rem !important;
+}
