@@ -1445,7 +1445,10 @@ static loadCombinedStyles() {
             padding: 15px;
             box-sizing: border-box;
         }
-        
+        .time-section, .weather-section {
+            margin-top: -18px !important;
+        }
+		
         /* ساختار دو ستونه - جهت اصلی LTR */
         .combined-layout {
             display: flex;
