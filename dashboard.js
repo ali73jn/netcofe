@@ -781,6 +781,148 @@ class Renderer {
             return;
         }
         
+		
+		
+		    // ==================== ایجاد کارت ساعت Retro ====================
+    static createRetroClockCard(container) {
+        const category = 'ساعت Retro';
+        // موقعیت در گوشه بالا سمت راست
+        const totalGridColumns = 12;
+        const defaultWidth = 6;
+        const defaultHeight = 4;
+        
+        const layout = state.layoutMap[category] || { 
+            col: totalGridColumns - defaultWidth + 1,
+            row: 1,
+            w: defaultWidth, 
+            h: defaultHeight,
+            view: "list"
+        };
+        
+        state.layoutMap[category] = layout;
+        
+        const card = document.createElement('div');
+        card.className = 'bookmark-card retro-clock-card';
+        card.dataset.category = category;
+        
+        // تنظیم موقعیت و ابعاد
+        card.style.gridColumnStart = layout.col;
+        card.style.gridRowStart = layout.row;
+        
+        const actualWidthInPixels =
+            (layout.w * CONFIG.GRID_CELL_SIZE) +
+            ((layout.w - 1) * CONFIG.GRID_GAP) +
+            CONFIG.HORIZONTAL_PIXEL_OFFSET;
+        
+        card.style.width = `${actualWidthInPixels}px`;
+        card.style.gridColumnEnd = `span ${layout.w}`;
+        card.style.gridRowEnd = `span ${layout.h}`;
+        
+        // محتوای اولیه
+        const now = new Date();
+        const jalali = gregorianToJalali(now.getFullYear(), now.getMonth() + 1, now.getDate());
+        const persianDays = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه', 'شنبه'];
+        
+        card.innerHTML = `
+            <div class="card-header">
+                <div class="card-title">${category}</div>
+                <button class="card-btn btn-drag visible-on-edit">::</button>
+            </div>
+            <div class="card-content">
+                <div class="retro-clock-wrapper">
+                    <div class="retro-clock-circle">
+                        <div class="retro-clock-rounder"></div>
+                        <div class="retro-clock-hour" id="retro-clock-hour"></div>
+                        <div class="retro-clock-minutes" id="retro-clock-minutes"></div>
+                    </div>
+                    
+                    <div>
+                        <div class="retro-clock-date">
+                            <span class="retro-day-week" id="retro-day-week">${persianDays[now.getDay()]}</span>
+                            <div>
+                                <span class="retro-month" id="retro-month">${toPersianDigits(getPersianMonthName(jalali[1]))}</span>
+                                <span class="retro-day" id="retro-day">${toPersianDigits(jalali[2])},</span>
+                                <span class="retro-year" id="retro-year">${toPersianDigits(jalali[0])}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="retro-clock-text">
+                            <span class="retro-text-hour" id="retro-text-hour">${toPersianDigits(now.getHours().toString().padStart(2, '0'))}:</span>
+                            <span class="retro-text-minutes" id="retro-text-minutes">${toPersianDigits(now.getMinutes().toString().padStart(2, '0'))}</span>
+                            <span class="retro-text-ampm" id="retro-text-ampm">${now.getHours() >= 12 ? 'PM' : 'AM'}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="resize-handle visible-on-edit"></div>
+        `;
+        
+        // افزودن رویدادهای درگ و ریسایز
+        const dragBtn = card.querySelector('.btn-drag');
+        const resizeEl = card.querySelector('.resize-handle');
+        
+        if (dragBtn) {
+            dragBtn.addEventListener('mousedown', (e) => DragResizeManager.startDrag(e, card));
+        }
+        
+        if (resizeEl) {
+            resizeEl.addEventListener('mousedown', (e) => DragResizeManager.startResize(e, card));
+        }
+        
+        container.appendChild(card);
+        
+        // تابع به‌روزرسانی ساعت عقربه‌ای
+        const updateRetroClock = () => {
+            const now = new Date();
+            const hh = now.getHours() / 12 * 360;
+            const mm = now.getMinutes() / 60 * 360;
+            
+            const hourHand = card.querySelector('#retro-clock-hour');
+            const minuteHand = card.querySelector('#retro-clock-minutes');
+            
+            if (hourHand) hourHand.style.transform = `rotateZ(${hh + mm / 12}deg)`;
+            if (minuteHand) minuteHand.style.transform = `rotateZ(${mm}deg)`;
+            
+            // به‌روزرسانی تاریخ شمسی
+            const jalali = gregorianToJalali(now.getFullYear(), now.getMonth() + 1, now.getDate());
+            const persianDays = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه', 'شنبه'];
+            
+            const dayWeekEl = card.querySelector('#retro-day-week');
+            const monthEl = card.querySelector('#retro-month');
+            const dayEl = card.querySelector('#retro-day');
+            const yearEl = card.querySelector('#retro-year');
+            const textHourEl = card.querySelector('#retro-text-hour');
+            const textMinutesEl = card.querySelector('#retro-text-minutes');
+            const textAmPmEl = card.querySelector('#retro-text-ampm');
+            
+            if (dayWeekEl) dayWeekEl.textContent = persianDays[now.getDay()];
+            if (monthEl) monthEl.textContent = toPersianDigits(getPersianMonthName(jalali[1]));
+            if (dayEl) dayEl.textContent = toPersianDigits(jalali[2]) + ',';
+            if (yearEl) yearEl.textContent = toPersianDigits(jalali[0]);
+            
+            // زمان دیجیتال
+            let hours = now.getHours();
+            const minutes = now.getMinutes();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12 || 12;
+            
+            if (textHourEl) textHourEl.textContent = toPersianDigits(hours.toString().padStart(2, '0')) + ':';
+            if (textMinutesEl) textMinutesEl.textContent = toPersianDigits(minutes.toString().padStart(2, '0'));
+            if (textAmPmEl) textAmPmEl.textContent = ampm;
+        };
+        
+        // اول یک بار اجرا می‌شود
+        updateRetroClock();
+        
+        // سپس هر ثانیه به‌روزرسانی می‌شود
+        const intervalId = setInterval(updateRetroClock, 1000);
+        
+        // ذخیره intervalId در کارت برای پاکسازی در صورت نیاز
+        card.dataset.intervalId = intervalId;
+    }
+	
+	
+	
         // ساختاردهی بوکمارک‌ها بر اساس دسته‌بندی
         const categorizedBookmarks = this.categorizeBookmarks(state.bookmarks);
         console.log('دسته‌بندی‌ها:', Object.keys(categorizedBookmarks));
@@ -799,6 +941,8 @@ class Renderer {
             this.createCard(category, items, layout, container);
         });
         
+		        // ایجاد کارت ساعت Retro
+        this.createRetroClockCard(container);
         // ذخیره layout جدید
         StorageManager.set(CONFIG.STORAGE_KEYS.LAYOUT, state.layoutMap);
         
@@ -811,6 +955,21 @@ class Renderer {
         this.createDateTimeCard(container);
     }
 
+
+// تبدیل اعداد انگلیسی به فارسی
+function toPersianDigits(num) {
+    const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+    return num.toString().replace(/\d/g, d => persianDigits[d]);
+}
+
+// تابع تبدیل ماه عددی به نام کوتاه فارسی
+function getPersianMonthName(month) {
+    const persianMonths = [
+        '۱', '۲', '۳', '۴', '۵', '۶',
+        '۷', '۸', '۹', '۱۰', '۱۱', '۱۲'
+    ];
+    return persianMonths[month - 1] || '۱';
+}
 
 
 // ==================== ایجاد کارت زمان و تاریخ با استایل مدرن ====================
