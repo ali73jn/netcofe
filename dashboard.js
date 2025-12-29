@@ -781,148 +781,6 @@ class Renderer {
             return;
         }
         
-		
-		
-		    // ==================== ایجاد کارت ساعت Retro ====================
-    static createRetroClockCard(container) {
-        const category = 'ساعت Retro';
-        // موقعیت در گوشه بالا سمت راست
-        const totalGridColumns = 12;
-        const defaultWidth = 6;
-        const defaultHeight = 4;
-        
-        const layout = state.layoutMap[category] || { 
-            col: totalGridColumns - defaultWidth + 1,
-            row: 1,
-            w: defaultWidth, 
-            h: defaultHeight,
-            view: "list"
-        };
-        
-        state.layoutMap[category] = layout;
-        
-        const card = document.createElement('div');
-        card.className = 'bookmark-card retro-clock-card';
-        card.dataset.category = category;
-        
-        // تنظیم موقعیت و ابعاد
-        card.style.gridColumnStart = layout.col;
-        card.style.gridRowStart = layout.row;
-        
-        const actualWidthInPixels =
-            (layout.w * CONFIG.GRID_CELL_SIZE) +
-            ((layout.w - 1) * CONFIG.GRID_GAP) +
-            CONFIG.HORIZONTAL_PIXEL_OFFSET;
-        
-        card.style.width = `${actualWidthInPixels}px`;
-        card.style.gridColumnEnd = `span ${layout.w}`;
-        card.style.gridRowEnd = `span ${layout.h}`;
-        
-        // محتوای اولیه
-        const now = new Date();
-        const jalali = gregorianToJalali(now.getFullYear(), now.getMonth() + 1, now.getDate());
-        const persianDays = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه', 'شنبه'];
-        
-        card.innerHTML = `
-            <div class="card-header">
-                <div class="card-title">${category}</div>
-                <button class="card-btn btn-drag visible-on-edit">::</button>
-            </div>
-            <div class="card-content">
-                <div class="retro-clock-wrapper">
-                    <div class="retro-clock-circle">
-                        <div class="retro-clock-rounder"></div>
-                        <div class="retro-clock-hour" id="retro-clock-hour"></div>
-                        <div class="retro-clock-minutes" id="retro-clock-minutes"></div>
-                    </div>
-                    
-                    <div>
-                        <div class="retro-clock-date">
-                            <span class="retro-day-week" id="retro-day-week">${persianDays[now.getDay()]}</span>
-                            <div>
-                                <span class="retro-month" id="retro-month">${toPersianDigits(getPersianMonthName(jalali[1]))}</span>
-                                <span class="retro-day" id="retro-day">${toPersianDigits(jalali[2])},</span>
-                                <span class="retro-year" id="retro-year">${toPersianDigits(jalali[0])}</span>
-                            </div>
-                        </div>
-                        
-                        <div class="retro-clock-text">
-                            <span class="retro-text-hour" id="retro-text-hour">${toPersianDigits(now.getHours().toString().padStart(2, '0'))}:</span>
-                            <span class="retro-text-minutes" id="retro-text-minutes">${toPersianDigits(now.getMinutes().toString().padStart(2, '0'))}</span>
-                            <span class="retro-text-ampm" id="retro-text-ampm">${now.getHours() >= 12 ? 'PM' : 'AM'}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="resize-handle visible-on-edit"></div>
-        `;
-        
-        // افزودن رویدادهای درگ و ریسایز
-        const dragBtn = card.querySelector('.btn-drag');
-        const resizeEl = card.querySelector('.resize-handle');
-        
-        if (dragBtn) {
-            dragBtn.addEventListener('mousedown', (e) => DragResizeManager.startDrag(e, card));
-        }
-        
-        if (resizeEl) {
-            resizeEl.addEventListener('mousedown', (e) => DragResizeManager.startResize(e, card));
-        }
-        
-        container.appendChild(card);
-        
-        // تابع به‌روزرسانی ساعت عقربه‌ای
-        const updateRetroClock = () => {
-            const now = new Date();
-            const hh = now.getHours() / 12 * 360;
-            const mm = now.getMinutes() / 60 * 360;
-            
-            const hourHand = card.querySelector('#retro-clock-hour');
-            const minuteHand = card.querySelector('#retro-clock-minutes');
-            
-            if (hourHand) hourHand.style.transform = `rotateZ(${hh + mm / 12}deg)`;
-            if (minuteHand) minuteHand.style.transform = `rotateZ(${mm}deg)`;
-            
-            // به‌روزرسانی تاریخ شمسی
-            const jalali = gregorianToJalali(now.getFullYear(), now.getMonth() + 1, now.getDate());
-            const persianDays = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه', 'شنبه'];
-            
-            const dayWeekEl = card.querySelector('#retro-day-week');
-            const monthEl = card.querySelector('#retro-month');
-            const dayEl = card.querySelector('#retro-day');
-            const yearEl = card.querySelector('#retro-year');
-            const textHourEl = card.querySelector('#retro-text-hour');
-            const textMinutesEl = card.querySelector('#retro-text-minutes');
-            const textAmPmEl = card.querySelector('#retro-text-ampm');
-            
-            if (dayWeekEl) dayWeekEl.textContent = persianDays[now.getDay()];
-            if (monthEl) monthEl.textContent = toPersianDigits(getPersianMonthName(jalali[1]));
-            if (dayEl) dayEl.textContent = toPersianDigits(jalali[2]) + ',';
-            if (yearEl) yearEl.textContent = toPersianDigits(jalali[0]);
-            
-            // زمان دیجیتال
-            let hours = now.getHours();
-            const minutes = now.getMinutes();
-            const ampm = hours >= 12 ? 'PM' : 'AM';
-            hours = hours % 12 || 12;
-            
-            if (textHourEl) textHourEl.textContent = toPersianDigits(hours.toString().padStart(2, '0')) + ':';
-            if (textMinutesEl) textMinutesEl.textContent = toPersianDigits(minutes.toString().padStart(2, '0'));
-            if (textAmPmEl) textAmPmEl.textContent = ampm;
-        };
-        
-        // اول یک بار اجرا می‌شود
-        updateRetroClock();
-        
-        // سپس هر ثانیه به‌روزرسانی می‌شود
-        const intervalId = setInterval(updateRetroClock, 1000);
-        
-        // ذخیره intervalId در کارت برای پاکسازی در صورت نیاز
-        card.dataset.intervalId = intervalId;
-    }
-	
-	
-	
         // ساختاردهی بوکمارک‌ها بر اساس دسته‌بندی
         const categorizedBookmarks = this.categorizeBookmarks(state.bookmarks);
         console.log('دسته‌بندی‌ها:', Object.keys(categorizedBookmarks));
@@ -941,8 +799,6 @@ class Renderer {
             this.createCard(category, items, layout, container);
         });
         
-		        // ایجاد کارت ساعت Retro
-        this.createRetroClockCard(container);
         // ذخیره layout جدید
         StorageManager.set(CONFIG.STORAGE_KEYS.LAYOUT, state.layoutMap);
         
@@ -956,26 +812,9 @@ class Renderer {
     }
 
 
-// تبدیل اعداد انگلیسی به فارسی
-function toPersianDigits(num) {
-    const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
-    return num.toString().replace(/\d/g, d => persianDigits[d]);
-}
 
-// تابع تبدیل ماه عددی به نام کوتاه فارسی
-function getPersianMonthName(month) {
-    const persianMonths = [
-        '۱', '۲', '۳', '۴', '۵', '۶',
-        '۷', '۸', '۹', '۱۰', '۱۱', '۱۲'
-    ];
-    return persianMonths[month - 1] || '۱';
-}
-
-
-// ==================== ایجاد کارت زمان و تاریخ با استایل مدرن ====================
 static createDateTimeCard(container) {
     const category = 'زمان و تاریخ';
-    // موقعیت در گوشه بالا سمت راست
     const totalGridColumns = 12;
     const defaultWidth = 4;
     const defaultHeight = 3;
@@ -1007,29 +846,36 @@ static createDateTimeCard(container) {
     card.style.gridColumnEnd = `span ${layout.w}`;
     card.style.gridRowEnd = `span ${layout.h}`;
     
-    // محتوای اولیه
-    const dateTime = getPersianDateTime();
+    // HTML ساعت رترو
     card.innerHTML = `
         <div class="card-header">
             <div class="card-title">${category}</div>
             <button class="card-btn btn-drag visible-on-edit">::</button>
         </div>
-        <div class="card-content datetime-content">
-            <div class="modern-clock">
-                <div class="clock-display">
-                    <div class="time-section">
-                        <div class="time-digits">
-                            <span class="digit-block hours">${dateTime.hours}</span>
-                            <span class="colon">:</span>
-                            <span class="digit-block minutes">${dateTime.minutes}</span>
-                            <span class="colon">:</span>
-                            <span class="digit-block seconds">${dateTime.seconds}</span>
-                        </div>
+        <div class="card-content retro-clock-content">
+            <!-- ساختار ساعت رترو -->
+            <div class="retro-clock-container">
+                <div class="retro-clock">
+                    <div class="retro-clock__circle">
+                        <div class="retro-clock__rounder"></div>
+                        <div class="retro-clock__hour" id="retro-clock-hour"></div>
+                        <div class="retro-clock__minutes" id="retro-clock-minutes"></div>
                     </div>
-                    <div class="date-section">
-                        <div class="date-display">
-                            <span class="persian-date">${dateTime.date}</span>
-                            <span class="day-name">${dateTime.day}</span>
+
+                    <div>
+                        <div class="retro-clock__date">
+                            <span class="retro-clock__day-week" id="retro-date-day-week"></span>
+                            <div>
+                                <span class="retro-clock__month" id="retro-date-month"></span>
+                                <span class="retro-clock__day" id="retro-date-day"></span>
+                                <span class="retro-clock__year" id="retro-date-year"></span>
+                            </div>
+                        </div>
+
+                        <div class="retro-clock__text">
+                            <span class="retro-clock__text-hour" id="retro-text-hour"></span>
+                            <span class="retro-clock__text-minutes" id="retro-text-minutes"></span>
+                            <span class="retro-clock__text-ampm" id="retro-text-ampm"></span>
                         </div>
                     </div>
                 </div>
@@ -1052,25 +898,282 @@ static createDateTimeCard(container) {
     
     container.appendChild(card);
     
-    // به‌روزرسانی زمان هر ثانیه برای حرکت ثانیه‌شمار
-    const timeInterval = setInterval(() => {
-        const dateTime = getPersianDateTime();
-        const hoursEl = card.querySelector('.hours');
-        const minutesEl = card.querySelector('.minutes');
-        const secondsEl = card.querySelector('.seconds');
-        const dateEl = card.querySelector('.persian-date');
-        const dayEl = card.querySelector('.day-name');
-        
-        if (hoursEl) hoursEl.textContent = dateTime.hours;
-        if (minutesEl) minutesEl.textContent = dateTime.minutes;
-        if (secondsEl) secondsEl.textContent = dateTime.seconds;
-        if (dateEl) dateEl.textContent = dateTime.date;
-        if (dayEl) dayEl.textContent = dateTime.day;
-    }, 1000);
+    // بارگذاری استایل‌های ساعت رترو
+    this.loadRetroClockStyles();
     
-    // ذخیره interval برای پاکسازی در صورت نیاز
-    card.dataset.intervalId = timeInterval;
-}	
+    // اجرای اسکریپت ساعت رترو
+    setTimeout(() => {
+        this.initRetroClock();
+    }, 100);
+}
+
+static loadRetroClockStyles() {
+    // اگر قبلاً اضافه شده، دوباره اضافه نکن
+    if (document.getElementById('retro-clock-styles')) return;
+    
+    const style = document.createElement('style');
+    style.id = 'retro-clock-styles';
+    style.textContent = `
+        /*=============== GOOGLE FONTS ===============*/
+        @import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&display=swap");
+        
+        /*=============== VARIABLES CSS ===============*/
+        .retro-clock-container {
+          --red-color: hsl(2, 72%, 50%);
+          --black-color: hsl(75, 4%, 18%);
+          --text-color: hsl(75, 4%, 12%);
+          --text-color-light: hsl(75, 4%, 75%);
+          --container-color: hsl(75, 15%, 85%);
+          --body-font: "Montserrat", sans-serif;
+          --h2-font-size: 1.25rem;
+          --small-font-size: .813rem;
+        }
+        
+        @media screen and (min-width: 1024px) {
+          .retro-clock-container {
+            --h1-font-size: 2.25rem;
+            --h2-font-size: 1.5rem;
+          }
+        }
+        
+        /*=============== CLOCK ===============*/
+        .retro-clock-container {
+          height: 100%;
+          display: grid;
+          place-items: center;
+          margin-inline: 1.5rem;
+        }
+        
+        .retro-clock {
+          width: 100%;
+          height: 176px;
+          background-color: var(--container-color);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          column-gap: 1rem;
+          border: 3px solid var(--black-color);
+          border-radius: 10rem;
+          box-shadow: 6px 6px 0 hsl(0, 0%, 65%), 
+                      12px 12px 0 hsl(75, 4%, 18%), 
+                      inset 10px 10px 0 hsl(0, 0%, 75%), 
+                      inset 11px 11px 0 hsl(75, 4%, 65%);
+        }
+        
+        .retro-clock__circle {
+          position: relative;
+          width: 100px;
+          height: 100px;
+          border: 3px solid var(--black-color);
+          background-color: var(--container-color);
+          border-radius: 50%;
+          box-shadow: inset 2px 2px 8px hsla(0, 0%, 0%, .4);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+        
+        .retro-clock__rounder {
+          width: 6px;
+          height: 6px;
+          background-color: var(--black-color);
+          border-radius: 50%;
+          box-shadow: 0 0 6px hsla(0, 0%, 0%, .25);
+          z-index: 2;
+        }
+        
+        .retro-clock__hour {
+          width: 2px;
+          height: 25px;
+          background-color: var(--red-color);
+        }
+        
+        .retro-clock__minutes {
+          width: 2px;
+          height: 38px;
+          background-color: var(--red-color);
+        }
+        
+        .retro-clock__hour, 
+        .retro-clock__minutes {
+          box-shadow: 0 0 6px hsla(0, 0%, 0%, .25);
+          position: absolute;
+          bottom: 50%;
+          transform-origin: bottom;
+        }
+        
+        .retro-clock__date {
+          display: grid;
+          row-gap: .25rem;
+          border-bottom: 1px solid var(--text-color-light);
+          padding-bottom: .5rem;
+          margin-bottom: 1rem;
+        }
+        
+        .retro-clock__day-week, 
+        .retro-clock__text-ampm {
+          font-size: var(--small-font-size);
+          font-weight: 500;
+        }
+        
+        .retro-clock__month, 
+        .retro-clock__day, 
+        .retro-clock__year, 
+        .retro-clock__text-hour, 
+        .retro-clock__text-minutes {
+          font-size: var(--h2-font-size);
+          font-weight: 600;
+        }
+        
+        /*=============== BREAKPOINTS ===============*/
+        @media screen and (max-width: 340px) {
+          .retro-clock {
+            width: 176px;
+            height: 328px;
+            flex-direction: column;
+            row-gap: 1.5rem;
+            text-align: center;
+            padding-left: .8rem;
+          }
+        }
+        
+        @media screen and (min-width: 450px) {
+          .retro-clock {
+            width: 380px;
+            height: 190px;
+            column-gap: 2rem;
+          }
+        }
+        
+        @media screen and (min-width: 1024px) {
+          .retro-clock {
+            width: 602px;
+            height: 306px;
+            border: 4px solid var(--black-color);
+            box-shadow: 15px 15px 0 hsl(0, 0%, 65%), 
+                        30px 30px 0 hsl(75, 4%, 18%), 
+                        inset 16px 16px 0 hsl(0, 0%, 75%), 
+                        inset 18px 18px 0 hsl(75, 4%, 65%);
+            column-gap: 3rem;
+          }
+          .retro-clock__circle {
+            width: 170px;
+            height: 170px;
+            border: 4px solid var(--black-color);
+          }
+          .retro-clock__rounder {
+            width: 8px;
+            height: 8px;
+          }
+          .retro-clock__minutes {
+            width: 3px;
+            height: 62px;
+          }
+          .retro-clock__hour {
+            width: 3px;
+            height: 40px;
+          }
+          .retro-clock__date {
+            margin-bottom: 1.5rem;
+          }
+          .retro-clock__day-week, 
+          .retro-clock__text-ampm {
+            font-size: var(--h2-font-size);
+          }
+          .retro-clock__month, 
+          .retro-clock__day, 
+          .retro-clock__year, 
+          .retro-clock__text-hour, 
+          .retro-clock__text-minutes {
+            font-size: var(--h1-font-size);
+          }
+        }
+        
+        /* تنظیمات برای کارت شما */
+        .datetime-card .retro-clock-container {
+          margin: 0;
+          padding: 0;
+          height: calc(100% - 60px);
+        }
+        
+        .datetime-card .retro-clock {
+          transform: scale(0.8);
+        }
+        
+        @media screen and (max-width: 768px) {
+          .datetime-card .retro-clock {
+            transform: scale(0.7);
+          }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+static initRetroClock() {
+    // ==================== CLOCK ====================
+    const hour = document.getElementById('retro-clock-hour'),
+          minutes = document.getElementById('retro-clock-minutes');
+    
+    const clock = () => {
+        let date = new Date();
+        let hh = date.getHours() / 12 * 360,
+            mm = date.getMinutes() / 60 * 360;
+        
+        if (hour) hour.style.transform = `rotateZ(${hh + mm / 12}deg)`;
+        if (minutes) minutes.style.transform = `rotateZ(${mm}deg)`;
+    };
+    
+    setInterval(clock, 1000);
+    clock(); // فراخوانی اولیه
+    
+    // ==================== TIME AND DATE TEXT ====================
+    const dateDayWeek = document.getElementById('retro-date-day-week'),
+          dateMonth = document.getElementById('retro-date-month'),
+          dateDay = document.getElementById('retro-date-day'),
+          dateYear = document.getElementById('retro-date-year'),
+          textHour = document.getElementById('retro-text-hour'),
+          textMinutes = document.getElementById('retro-text-minutes'),
+          textAmPm = document.getElementById('retro-text-ampm');
+    
+    const clockText = () => {
+        let date = new Date();
+        let dayWeek = date.getDay(),
+            month = date.getMonth(),
+            day = date.getDate(),
+            year = date.getFullYear(),
+            hh = date.getHours(),
+            mm = date.getMinutes(),
+            ampm;
+        
+        let daysWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        let months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        
+        if (dateDayWeek) dateDayWeek.innerHTML = `${daysWeek[dayWeek]}`;
+        if (dateMonth) dateMonth.innerHTML = `${months[month]}`;
+        if (dateDay) dateDay.innerHTML = `${day}, `;
+        if (dateYear) dateYear.innerHTML = year;
+        
+        if (hh >= 12) {
+            hh = hh - 12;
+            ampm = 'PM';
+        } else {
+            ampm = 'AM';
+        }
+        
+        if (textAmPm) textAmPm.innerHTML = ampm;
+        
+        if (hh == 0) hh = 12;
+        if (hh < 10) hh = `0${hh}`;
+        if (textHour) textHour.innerHTML = `${hh}:`;
+        if (mm < 10) mm = `0${mm}`;
+        if (textMinutes) textMinutes.innerHTML = mm;
+    };
+    
+    setInterval(clockText, 1000);
+    clockText(); // فراخوانی اولیه
+}
+
+
 	
 	
 // در کلاس Renderer این تابع رو عوض کن:
