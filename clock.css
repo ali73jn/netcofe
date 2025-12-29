@@ -1,0 +1,111 @@
+/*=============== RETRO CLOCK SIMPLIFIED ===============*/
+.retro-clock-container {
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    direction: ltr !important;
+    font-family: 'Montserrat', sans-serif;
+}
+
+.retro-clock {
+    width: auto;
+    height: 160px;
+    background-color: #dfe6e9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    column-gap: 20px;
+    border: 3px solid #2d3436;
+    border-radius: 100px;
+    box-shadow: 6px 6px 0 #b2bec3, 
+                12px 12px 0 #2d3436, 
+                inset 10px 10px 0 #dfe6e9, 
+                inset 11px 11px 0 #b2bec3;
+    padding: 0 30px;
+    direction: ltr !important;
+}
+
+.retro-clock__circle {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    border: 3px solid #2d3436;
+    background-color: #dfe6e9;
+    border-radius: 50%;
+    box-shadow: inset 2px 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.retro-clock__rounder {
+    width: 6px;
+    height: 6px;
+    background-color: #2d3436;
+    border-radius: 50%;
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.25);
+    z-index: 2;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.retro-clock__hour {
+    width: 3px;
+    height: 25px;
+    background-color: #d63031;
+}
+
+.retro-clock__minutes {
+    width: 2px;
+    height: 38px;
+    background-color: #d63031;
+}
+
+.retro-clock__hour, 
+.retro-clock__minutes {
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.25);
+    position: absolute;
+    bottom: 50%;
+    left: 50%;
+    transform-origin: bottom center;
+    transform: translateX(-50%);
+    border-radius: 2px;
+}
+
+.retro-clock__info {
+    direction: ltr !important;
+    text-align: center !important;
+}
+
+.retro-clock__date {
+    display: grid;
+    row-gap: 5px;
+    border-bottom: 1px solid #636e72;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.retro-clock__day-week, 
+.retro-clock__text-ampm {
+    font-size: 14px;
+    font-weight: 500;
+    color: #2d3436;
+}
+
+.retro-clock__month, 
+.retro-clock__day, 
+.retro-clock__year, 
+.retro-clock__text-hour, 
+.retro-clock__text-minutes {
+    font-size: 20px;
+    font-weight: 600;
+    color: #2d3436;
+}
+
+.retro-clock__text {
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    gap: 5px;
+}
