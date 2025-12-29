@@ -1131,3 +1131,10 @@ html, body {
     box-sizing: border-box !important;
 }
 
+.city-change-btn.visible-on-edit {
+    display: none !important;
+}
+
+.editing-mode .city-change-btn.visible-on-edit {
+    display: inline-block !important;
+}

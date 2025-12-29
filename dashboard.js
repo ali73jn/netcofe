@@ -413,6 +413,145 @@ class FaviconManager {
     }
 }
 
+
+// ==================== سیستم آب و هوا ====================
+
+class WeatherManager {
+    static userCoordinates = null;
+    
+    static async getWeather() {
+        try {
+            // استفاده از مختصات کاربر یا مختصات ذخیره شده
+            const coordinates = this.userCoordinates || await this.getUserLocation();
+            
+            const response = await fetch(
+                `https://api.open-meteo.com/v1/forecast?latitude=${coordinates.latitude}&longitude=${coordinates.longitude}&current_weather=true&timezone=auto`
+            );
+            
+            if (!response.ok) throw new Error('خطا در دریافت اطلاعات آب و هوا');
+            
+            const data = await response.json();
+            return this.formatWeatherData(data);
+            
+        } catch (error) {
+            console.error('خطا در دریافت آب و هوا:', error);
+            return this.getFallbackWeather();
+        }
+    }
+
+    static getUserLocation() {
+        return new Promise((resolve, reject) => {
+            // اول بررسی کن که آیا شهر از قبل انتخاب شده
+            const savedCity = StorageManager.get('netcofe_selected_city');
+            if (savedCity) {
+                const [lat, lon] = savedCity.coordinates.split(',').map(Number);
+                this.userCoordinates = { latitude: lat, longitude: lon };
+                resolve(this.userCoordinates);
+                return;
+            }
+            
+            // اگر نه، از geolocation استفاده کن
+            if (!navigator.geolocation) {
+                // موقعیت پیش‌فرض (تهران)
+                const defaultCoords = { latitude: 35.6892, longitude: 51.3890 };
+                this.userCoordinates = defaultCoords;
+                resolve(defaultCoords);
+                return;
+            }
+            
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const coords = {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude
+                    };
+                    this.userCoordinates = coords;
+                    resolve(coords);
+                },
+                (error) => {
+                    console.warn('خطا در دریافت موقعیت:', error);
+                    // موقعیت پیش‌فرض (تهران)
+                    const defaultCoords = { latitude: 35.6892, longitude: 51.3890 };
+                    this.userCoordinates = defaultCoords;
+                    resolve(defaultCoords);
+                },
+                {
+                    enableHighAccuracy: false,
+                    timeout: 10000,
+                    maximumAge: 300000
+                }
+            );
+        });
+    }
+
+
+    static formatWeatherData(data) {
+        const current = data.current_weather;
+        
+        // تبدیل کد وضعیت هوا به متن فارسی
+        const weatherCodes = {
+            0: 'آفتابی',
+            1: 'آفتابی',
+            2: 'نیمه ابری',
+            3: 'ابری',
+            45: 'مه',
+            48: 'مه',
+            51: 'نمنم باران',
+            53: 'باران ملایم',
+            55: 'باران شدید',
+            61: 'باران ملایم',
+            63: 'باران',
+            65: 'باران شدید',
+            71: 'بارش برف ملایم',
+            73: 'بارش برف',
+            75: 'بارش برف شدید',
+            80: 'رگبار باران',
+            81: 'رگبار شدید',
+            82: 'رگبار سیل‌آسا',
+            95: 'رعد و برق',
+            96: 'رعد و برق با باران',
+            99: 'رعد و برق شدید'
+        };
+
+        return {
+            temperature: Math.round(current.temperature),
+            weatherCode: current.weathercode,
+            condition: weatherCodes[current.weathercode] || 'نامشخص',
+            windSpeed: Math.round(current.windspeed),
+            windDirection: current.winddirection,
+            time: new Date(current.time),
+            isDay: current.is_day === 1
+        };
+    }
+
+    static getFallbackWeather() {
+        return {
+            temperature: 22,
+            condition: 'آفتابی',
+            windSpeed: 5,
+            isDay: true,
+            isFallback: true
+        };
+    }
+
+    static getWeatherIcon(condition) {
+        const icons = {
+            'آفتابی': '☀️',
+            'نیمه ابری': '⛅',
+            'ابری': '☁️',
+            'مه': '🌫️',
+            'باران': '🌧️',
+            'باران ملایم': '🌦️',
+            'باران شدید': '⛈️',
+            'برف': '❄️',
+            'رعد و برق': '⚡',
+            'نامشخص': '🌈'
+        };
+        
+        return icons[condition] || '🌈';
+    }
+}
+
 // ==================== مدیریت تم و ظاهر ====================
 class ThemeManager {
     static init() {
@@ -751,74 +890,72 @@ class ImportExportManager {
 
 // ==================== رندرینگ و DOM ====================
 class Renderer {
-    static async renderDashboard() {
-        const container = document.getElementById('grid-container');
-        if (!container) return;
+static async renderDashboard() {
+    const container = document.getElementById('grid-container');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    document.body.classList.toggle('editing-mode', state.isEditMode);
+    document.body.classList.toggle('compact-mode', state.isCompactMode);
+    
+    console.log('رندر کردن داشبورد با', state.bookmarks.length, 'بوکمارک');
+    
+    // اگر بوکمارکی نداریم، پیام نشان می‌دهیم
+    if (state.bookmarks.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <h3>📚 بوکمارکی یافت نشد</h3>
+                <p>برای شروع، دکمه ویرایش را فشار داده و بوکمارک جدید اضافه کنید.</p>
+                <button id="add-first-bookmark" class="btn-success">افزودن اولین بوکمارک</button>
+            </div>
+        `;
         
-        container.innerHTML = '';
-        document.body.classList.toggle('editing-mode', state.isEditMode);
-        document.body.classList.toggle('compact-mode', state.isCompactMode);
-        
-        console.log('رندر کردن داشبورد با', state.bookmarks.length, 'بوکمارک');
-        
-        // اگر بوکمارکی نداریم، پیام نشان می‌دهیم
-        if (state.bookmarks.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <h3>📚 بوکمارکی یافت نشد</h3>
-                    <p>برای شروع، دکمه ویرایش را فشار داده و بوکمارک جدید اضافه کنید.</p>
-                    <button id="add-first-bookmark" class="btn-success">افزودن اولین بوکمارک</button>
-                </div>
-            `;
-            
-            const addBtn = document.getElementById('add-first-bookmark');
-            if (addBtn) {
-                addBtn.addEventListener('click', () => {
-                    document.getElementById('edit-mode-btn').click(); // وارد حالت ویرایش شو
-                });
-            }
-            
-            return;
+        const addBtn = document.getElementById('add-first-bookmark');
+        if (addBtn) {
+            addBtn.addEventListener('click', () => {
+                document.getElementById('edit-mode-btn').click(); // وارد حالت ویرایش شو
+            });
         }
         
-        // ساختاردهی بوکمارک‌ها بر اساس دسته‌بندی
-        const categorizedBookmarks = this.categorizeBookmarks(state.bookmarks);
-        console.log('دسته‌بندی‌ها:', Object.keys(categorizedBookmarks));
-        
-        // ایجاد کارت برای هر دسته‌بندی
-        Object.entries(categorizedBookmarks).forEach(([category, items], index) => {
-            const layout = state.layoutMap[category] || { 
-                col: (index % 3) * 8 + 1, 
-                row: Math.floor(index / 3) * 6 + 1, 
-                w: 8, 
-                h: 6,
-                view: "list"
-            };
-            
-            state.layoutMap[category] = layout;
-            this.createCard(category, items, layout, container);
-        });
-        
-        // ذخیره layout جدید
-        StorageManager.set(CONFIG.STORAGE_KEYS.LAYOUT, state.layoutMap);
-        
-        // اعمال فیلتر جستجو
-        if (state.searchTerm) {
-            this.applySearchFilter(state.searchTerm);
-        }
-		
-		        // ایجاد کارت زمان و تاریخ
-        this.createDateTimeCard(container);
+        return;
     }
-
-
+    
+    // ساختاردهی بوکمارک‌ها بر اساس دسته‌بندی
+    const categorizedBookmarks = this.categorizeBookmarks(state.bookmarks);
+    console.log('دسته‌بندی‌ها:', Object.keys(categorizedBookmarks));
+    
+    // فقط یک کارت ترکیبی در سمت راست
+    this.createDateTimeCard(container); // این حالا کارت ترکیبی است
+    
+    // ایجاد کارت برای هر دسته‌بندی
+    Object.entries(categorizedBookmarks).forEach(([category, items], index) => {
+        const layout = state.layoutMap[category] || { 
+            col: (index % 3) * 8 + 1, 
+            row: Math.floor(index / 3) * 6 + 2, // ردیف 2 به بعد
+            w: 8, 
+            h: 6,
+            view: "list"
+        };
+        
+        state.layoutMap[category] = layout;
+        this.createCard(category, items, layout, container);
+    });
+    
+    // ذخیره layout جدید
+    StorageManager.set(CONFIG.STORAGE_KEYS.LAYOUT, state.layoutMap);
+    
+    // اعمال فیلتر جستجو
+    if (state.searchTerm) {
+        this.applySearchFilter(state.searchTerm);
+    }
+}
 
 
 static createDateTimeCard(container) {
-    const category = 'زمان و تاریخ';
+    const category = 'زمان و آب و هوا';
     const totalGridColumns = 12;
     const defaultWidth = 4;
-    const defaultHeight = 2; // تغییر از ۳ به ۲ - ارتفاع کمتر
+    const defaultHeight = 3;
     
     const layout = state.layoutMap[category] || { 
         col: totalGridColumns - defaultWidth + 1,
@@ -831,7 +968,7 @@ static createDateTimeCard(container) {
     state.layoutMap[category] = layout;
     
     const card = document.createElement('div');
-    card.className = 'bookmark-card datetime-card';
+    card.className = 'bookmark-card datetime-weather-card';
     card.dataset.category = category;
     
     // تنظیم موقعیت و ابعاد
@@ -847,20 +984,78 @@ static createDateTimeCard(container) {
     card.style.gridColumnEnd = `span ${layout.w}`;
     card.style.gridRowEnd = `span ${layout.h}`;
     
-    // HTML ساعت دیجیتال - ساختار ساده‌تر
-    card.innerHTML = `
-        <div class="card-header">
-            <div class="card-title">${category}</div>
-            <button class="card-btn btn-drag visible-on-edit">::</button>
-        </div>
-        <div class="card-content digital-clock-content">
-            <div class="digital-clock-container">
-                <div class="digital-time" id="digital-time">۰۰:۰۰</div>
-                <div class="digital-date" id="digital-date">یکشنبه ۱ فروردین</div>
+    // HTML کارت ترکیبی جدید
+// در تابع createDateTimeCard، بخش انتخاب شهر رو اینطور تغییر بده:
+// در تابع createDateTimeCard، این قسمت رو تغییر میدم:
+card.innerHTML = `
+    <div class="card-header">
+        <div class="card-title">${category}</div>
+        <button class="card-btn btn-drag visible-on-edit">::</button>
+    </div>
+    <div class="card-content datetime-weather-content">
+        <!-- ساختار: آب و هوا سمت چپ، ساعت سمت راست -->
+        <div class="combined-layout">
+            <!-- ستون چپ: آب و هوا (حالا با اسم weather-column) -->
+            <div class="weather-column">
+                <div class="weather-section">
+                    <div class="weather-row">
+                        <div class="weather-label">دما:</div>
+                        <div class="weather-value">
+                            <span id="weather-temp">--</span>
+                            <span class="weather-unit">°C</span>
+                        </div>
+                    </div>
+                    
+                    <div class="weather-row">
+                        <div class="weather-label">وضعیت:</div>
+                        <div class="weather-value">
+                            <span id="weather-icon">🌤️</span>
+                            <span id="weather-desc">---</span>
+                        </div>
+                    </div>
+                    
+                    <div class="weather-row">
+                        <div class="weather-label">باد:</div>
+                        <div class="weather-value" id="weather-wind">-- ک.م/ساعت</div>
+                    </div>
+                    
+                    <div class="weather-row">
+                        <div class="weather-label">شهر:</div>
+                        <div class="weather-value">
+                            <span id="weather-location">تهران</span>
+                            <button class="city-change-btn visible-on-edit" id="city-change-btn" title="تغییر شهر">🔄</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ستون راست: ساعت و تاریخ (حالا با اسم time-column) -->
+            <div class="time-column">
+                <div class="time-section">
+                    <div class="digital-time" id="digital-time">۰۰:۰۰</div>
+                    <div class="digital-date" id="digital-date">یکشنبه ۱ فروردین</div>
+                </div>
             </div>
         </div>
-        <div class="resize-handle visible-on-edit"></div>
-    `;
+        
+        <!-- انتخاب شهر -->
+        <div class="city-selector hidden" id="city-selector">
+            <div class="city-input-container">
+                <input type="text" 
+                       id="city-search-input" 
+                       class="city-search-input" 
+                       placeholder="نام شهر را وارد کنید (مثال: تهران، مشهد، اصفهان...)"
+                       autocomplete="off">
+                <div class="city-suggestions" id="city-suggestions"></div>
+            </div>
+            <div class="city-selector-buttons">
+                <button id="confirm-city-btn">تأیید</button>
+                <button id="cancel-city-btn">انصراف</button>
+            </div>
+        </div>
+    </div>
+    <div class="resize-handle visible-on-edit"></div>
+`;
     
     // افزودن رویدادهای درگ و ریسایز
     const dragBtn = card.querySelector('.btn-drag');
@@ -875,14 +1070,821 @@ static createDateTimeCard(container) {
     }
     
     container.appendChild(card);
+	this.createCitySelectorModal();
     
-    // بارگذاری استایل‌های ساعت دیجیتال
-    this.loadDigitalClockStyles();
+    // بارگذاری استایل‌های ترکیبی
+    this.loadCombinedStyles();
     
-    // اجرای اسکریپت ساعت دیجیتال
+    // اجرای اسکریپت‌ها
     setTimeout(() => {
         this.initDigitalClock();
+        this.initCombinedWeather();
+        this.setupCitySelection();
     }, 100);
+}
+static createCitySelectorModal() {
+    // اگر از قبل وجود داره، حذفش کن
+    const existingModal = document.getElementById('global-city-selector');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // ایجاد modal جدید
+    const modal = document.createElement('div');
+    modal.id = 'global-city-selector';
+    modal.className = 'city-selector-modal hidden';
+    modal.innerHTML = `
+        <div class="city-selector-overlay"></div>
+        <div class="city-selector-content">
+            <div class="city-selector-header">
+                <h3>انتخاب شهر</h3>
+                <button class="close-city-selector" id="close-global-city-selector">×</button>
+            </div>
+            <div class="city-input-container">
+                <input type="text" 
+                       id="global-city-search-input" 
+                       class="city-search-input" 
+                       placeholder="نام شهر را وارد کنید (مثال: تهران، مشهد، اصفهان...)"
+                       autocomplete="off">
+                <div class="city-suggestions" id="global-city-suggestions"></div>
+            </div>
+            <div class="city-selector-buttons">
+                <button id="global-confirm-city-btn">تأیید</button>
+                <button id="global-cancel-city-btn">انصراف</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+
+
+static setupCitySelection() {
+    const cityChangeBtn = document.getElementById('city-change-btn');
+    const globalModal = document.getElementById('global-city-selector');
+    const citySearchInput = document.getElementById('global-city-search-input');
+    const citySuggestions = document.getElementById('global-city-suggestions');
+    const confirmBtn = document.getElementById('global-confirm-city-btn');
+    const cancelBtn = document.getElementById('global-cancel-city-btn');
+    const closeBtn = document.getElementById('close-global-city-selector');
+    
+    if (!cityChangeBtn || !globalModal) {
+        console.error('عناصر شهر پیدا نشدند!');
+        return;
+    }
+    
+    let selectedCity = null;
+    
+    // بارگذاری شهر انتخاب شده از localStorage
+    const savedCity = StorageManager.get('netcofe_selected_city');
+    if (savedCity) {
+        selectedCity = savedCity;
+        document.getElementById('weather-location').textContent = savedCity.name;
+    }
+    
+    // دکمه تغییر شهر
+    cityChangeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        globalModal.classList.remove('hidden');
+        if (citySearchInput) {
+            citySearchInput.focus();
+            citySearchInput.value = selectedCity ? selectedCity.name : '';
+        }
+    });
+    
+    // بستن modal
+    const closeModal = () => {
+        globalModal.classList.add('hidden');
+        if (citySearchInput) citySearchInput.value = '';
+        if (citySuggestions) {
+            citySuggestions.innerHTML = '';
+            citySuggestions.style.display = 'none';
+        }
+        selectedCity = null;
+    };
+    
+    // دکمه بستن
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeModal);
+    }
+    
+    // دکمه انصراف
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', closeModal);
+    }
+    
+    // کلیک روی overlay
+    const overlay = globalModal.querySelector('.city-selector-overlay');
+    if (overlay) {
+        overlay.addEventListener('click', closeModal);
+    }
+    
+    // جستجوی شهر
+    let searchTimeout;
+    if (citySearchInput) {
+        citySearchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            const query = e.target.value.trim();
+            
+            if (query.length < 2) {
+                citySuggestions.innerHTML = '';
+                citySuggestions.style.display = 'none';
+                return;
+            }
+            
+            searchTimeout = setTimeout(async () => {
+                await this.searchCities(query, citySuggestions);
+            }, 500);
+        });
+    }
+    
+    // انتخاب از لیست پیشنهادات
+    if (citySuggestions) {
+        citySuggestions.addEventListener('click', (e) => {
+            const suggestion = e.target.closest('.city-suggestion');
+            if (suggestion && suggestion.dataset.city) {
+                try {
+                    const cityData = JSON.parse(suggestion.dataset.city);
+                    
+                    selectedCity = {
+                        name: cityData.display_name.split(',')[0],
+                        coordinates: `${cityData.lat},${cityData.lon}`,
+                        fullName: cityData.display_name
+                    };
+                    
+                    if (citySearchInput) {
+                        citySearchInput.value = selectedCity.name;
+                    }
+                    
+                    citySuggestions.innerHTML = '';
+                    citySuggestions.style.display = 'none';
+                } catch (error) {
+                    console.error('خطا در پردازش شهر:', error);
+                }
+            }
+        });
+    }
+    
+    // تأیید انتخاب شهر
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', async () => {
+            const cityName = citySearchInput ? citySearchInput.value.trim() : '';
+            
+            if (!cityName) {
+                alert('لطفاً نام شهر را وارد کنید');
+                return;
+            }
+            
+            try {
+                let cityToSave = selectedCity;
+                
+                // اگر از لیست انتخاب نشده، جستجو کن
+                if (!cityToSave) {
+                    const cities = await this.searchCitiesAPI(cityName);
+                    if (cities && cities.length > 0) {
+                        cityToSave = {
+                            name: cities[0].name,
+                            coordinates: `${cities[0].lat},${cities[0].lon}`,
+                            fullName: cities[0].display_name
+                        };
+                    } else {
+                        alert('شهر "' + cityName + '" پیدا نشد.');
+                        return;
+                    }
+                }
+                
+                // ذخیره شهر
+                StorageManager.set('netcofe_selected_city', cityToSave);
+                
+                // به‌روزرسانی مختصات
+                const [lat, lon] = cityToSave.coordinates.split(',').map(Number);
+                WeatherManager.userCoordinates = { latitude: lat, longitude: lon };
+                
+                // به‌روزرسانی نمایش
+                document.getElementById('weather-location').textContent = cityToSave.name;
+                
+                // بستن modal
+                closeModal();
+                
+                // دریافت اطلاعات آب و هوای جدید
+                await this.refreshWeather();
+                
+            } catch (error) {
+                console.error('خطا در ذخیره شهر:', error);
+                alert('خطا در ذخیره شهر: ' + error.message);
+            }
+        });
+    }
+}
+
+
+
+static async searchCities(query, suggestionsContainer) {
+    try {
+        const cities = await this.searchCitiesAPI(query);
+        
+        suggestionsContainer.innerHTML = '';
+        
+        if (cities.length === 0) {
+            suggestionsContainer.innerHTML = '<div class="city-suggestion">شهری یافت نشد</div>';
+            suggestionsContainer.style.display = 'block';
+            return;
+        }
+        
+        cities.forEach(city => {
+            const div = document.createElement('div');
+            div.className = 'city-suggestion';
+            // فقط ۲ قسمت اول نشون بدیم تا خوانا باشه
+            const displayParts = city.display_name.split(',').slice(0, 2).join(', ');
+            div.textContent = displayParts;
+            div.dataset.city = JSON.stringify({
+                display_name: city.display_name,
+                lat: city.lat,
+                lon: city.lon
+            });
+            
+            // وقتی روی پیشنهاد کلیک شد، مستقیماً اعمال کن
+            div.addEventListener('click', async () => {
+                const selectedCity = {
+                    name: city.display_name.split(',')[0],
+                    coordinates: `${city.lat},${city.lon}`,
+                    fullName: city.display_name
+                };
+                
+                // ذخیره در localStorage
+                StorageManager.set('netcofe_selected_city', selectedCity);
+                
+                // به‌روزرسانی مختصات
+                const [lat, lon] = selectedCity.coordinates.split(',').map(Number);
+                WeatherManager.userCoordinates = { latitude: lat, longitude: lon };
+                
+                // به‌روزرسانی نمایش
+                document.getElementById('weather-location').textContent = selectedCity.name;
+                
+                // بستن modal
+                document.getElementById('city-selector').classList.add('hidden');
+                document.getElementById('city-search-input').value = '';
+                suggestionsContainer.innerHTML = '';
+                suggestionsContainer.style.display = 'none';
+                
+                // دریافت اطلاعات آب و هوای جدید
+                await this.refreshWeather();
+            });
+            
+            suggestionsContainer.appendChild(div);
+        });
+        
+        suggestionsContainer.style.display = 'block';
+        
+    } catch (error) {
+        console.error('خطا در جستجوی شهرها:', error);
+        suggestionsContainer.innerHTML = '<div class="city-suggestion">خطا در جستجو</div>';
+        suggestionsContainer.style.display = 'block';
+    }
+}
+
+
+static async searchCitiesAPI(query) {
+    try {
+        const response = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=ir&limit=5&accept-language=fa`
+        );
+        
+        if (!response.ok) throw new Error('خطا در جستجوی شهر');
+        
+        const cities = await response.json();
+        return cities.map(city => ({
+            name: city.display_name.split(',')[0],
+            lat: city.lat,
+            lon: city.lon,
+            display_name: city.display_name
+        }));
+        
+    } catch (error) {
+        console.error('خطا در جستجوی شهر:', error);
+        return [];
+    }
+}
+
+
+static async initCombinedWeather() {
+    try {
+        // بارگذاری شهر انتخاب شده
+        const savedCity = StorageManager.get('netcofe_selected_city');
+        if (savedCity) {
+            document.getElementById('weather-location').textContent = savedCity.name;
+        }
+        
+        // دریافت اطلاعات آب و هوا
+        const weatherData = await WeatherManager.getWeather();
+        
+        // به‌روزرسانی اطلاعات آب و هوا
+        document.getElementById('weather-temp').textContent = weatherData.temperature;
+        document.getElementById('weather-icon').textContent = WeatherManager.getWeatherIcon(weatherData.condition);
+        document.getElementById('weather-desc').textContent = weatherData.condition;
+        document.getElementById('weather-wind').textContent = `${weatherData.windSpeed} ک.م/ساعت`;
+        
+        // به‌روزرسانی هر 10 دقیقه
+        setTimeout(() => this.initCombinedWeather(), 10 * 60 * 1000);
+        
+    } catch (error) {
+        console.error('خطا در دریافت آب و هوا:', error);
+        
+        // نمایش داده‌های پیش‌فرض
+        const fallback = WeatherManager.getFallbackWeather();
+        document.getElementById('weather-temp').textContent = fallback.temperature;
+        document.getElementById('weather-icon').textContent = WeatherManager.getWeatherIcon(fallback.condition);
+        document.getElementById('weather-desc').textContent = fallback.condition;
+        document.getElementById('weather-wind').textContent = `${fallback.windSpeed} ک.م/ساعت`;
+        document.getElementById('weather-location').textContent = 'تهران';
+    }
+}
+
+
+static async getCityName() {
+    try {
+        // استفاده از OpenStreetMap Nominatim API (رایگان)
+        const position = await WeatherManager.getUserLocation();
+        
+        const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.latitude}&lon=${position.longitude}&accept-language=fa`
+        );
+        
+        if (!response.ok) {
+            throw new Error('خطا در دریافت نام شهر');
+        }
+        
+        const data = await response.json();
+        
+        // استخراج نام شهر از پاسخ
+        return data.address.city || 
+               data.address.town || 
+               data.address.village || 
+               data.address.county || 
+               'موقعیت شما';
+        
+    } catch (error) {
+        console.warn('خطا در دریافت نام شهر:', error);
+        throw error;
+    }
+}
+
+
+static loadCombinedStyles() {
+    if (document.getElementById('combined-styles')) return;
+    
+    const style = document.createElement('style');
+    style.id = 'combined-styles';
+    style.textContent = `
+        /* استایل‌های کارت ترکیبی - ساعت چپ، آب و هوا راست */
+        .datetime-weather-content {
+            height: 100%;
+            padding: 15px;
+            box-sizing: border-box;
+        }
+        
+        /* ساختار دو ستونه - جهت اصلی LTR */
+        .combined-layout {
+            display: flex;
+            height: 100%;
+        justify-content: space-between; /* این معجزه می‌کنه */
+            direction: ltr;
+        }
+        
+        /* ستون ساعت (چپ) */
+        .left-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start; /* محتوای ساعت چپ‌چین */
+            justify-content: flex-start;
+            direction: ltr; /* جهت متن برای ساعت LTR */
+        }
+        
+        /* ستون آب و هوا (راست) */
+        .right-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end; /* محتوای آب و هوا راست‌چین */
+            justify-content: flex-start;
+            direction: rtl; /* جهت متن برای آب و هوا RTL */
+        }
+        
+        /* بخش ساعت */
+        .time-section {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end; /* ساعت چپ‌چین */
+            text-align: left;
+            width: 100%;
+        }
+        
+        .digital-time {
+            font-size: 2.8rem;
+            font-weight: 700;
+            color: #3b82f6;
+            line-height: 1;
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+            direction: ltr;
+            text-align: left;
+            font-family: 'Vazirmatn', 'Segoe UI', Tahoma, sans-serif; /* فونت فارسی برای اعداد فارسی */
+            unicode-bidi: plaintext;
+        }
+        
+        .digital-date {
+            font-size: 1.3rem;
+            font-weight: 500;
+            color: #6b7280;
+            font-family: 'Vazirmatn', 'Segoe UI', Tahoma, sans-serif;
+            direction: rtl;
+            text-align: right;
+            width: 100%;
+        }
+        
+        /* بخش آب و هوا */
+        .weather-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+            text-align: right;
+        }
+        
+        .weather-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px solid #f1f1f1;
+            direction: rtl;
+        }
+        
+        .weather-row:last-child {
+            border-bottom: none;
+        }
+        
+        .weather-label {
+            font-size: 0.9rem;
+            color: #6b7280;
+            font-weight: 500;
+            min-width: 60px;
+            text-align: right;
+        }
+        
+        .weather-value {
+            font-size: 1rem;
+            color: #374151;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            text-align: right;
+        }
+        
+        .weather-unit {
+            font-size: 0.9rem;
+            color: #9ca3af;
+        }
+        
+        .city-change-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: #6b7280;
+            padding: 2px 6px;
+            border-radius: 3px;
+            transition: all 0.2s;
+        }
+        
+        .city-change-btn:hover {
+            background-color: #f3f4f6;
+            color: #3b82f6;
+        }
+        
+        /* حالت تاریک */
+        [data-theme="dark"] .digital-time {
+            color: #60a5fa;
+        }
+        
+        [data-theme="dark"] .weather-row {
+            border-bottom-color: #4b5563;
+        }
+        
+        [data-theme="dark"] .weather-label {
+            color: #d1d5db;
+        }
+        
+        [data-theme="dark"] .weather-value {
+            color: #f3f4f6;
+        }
+        
+        /* انتخاب شهر (بدون تغییر) */
+        .city-selector {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 300px;
+            direction: rtl;
+        }
+        
+        .city-input-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .city-search-input {
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #d1d5db;
+            font-family: 'Vazirmatn', sans-serif;
+            font-size: 1rem;
+            width: 100%;
+            box-sizing: border-box;
+            direction: rtl;
+        }
+        
+        .city-suggestions {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 5px;
+            display: none;
+            direction: rtl;
+        }
+        
+        .city-suggestion {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #f3f4f6;
+            font-family: 'Vazirmatn', sans-serif;
+            text-align: right;
+        }
+        
+        .city-suggestion:hover {
+            background-color: #f3f4f6;
+        }
+        
+        .city-selector-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-start; /* دکمه‌ها سمت راست */
+        }
+        
+        .city-selector button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Vazirmatn', sans-serif;
+        }
+        
+        #confirm-city-btn {
+            background-color: #3b82f6;
+            color: white;
+        }
+        
+        #cancel-city-btn {
+            background-color: #ef4444;
+            color: white;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+		
+    `;
+    document.head.appendChild(style);
+}
+
+
+static setupCitySelection() {
+    const cityChangeBtn = document.getElementById('city-change-btn');
+    const citySelector = document.getElementById('city-selector');
+    const citySearchInput = document.getElementById('city-search-input');
+    const citySuggestions = document.getElementById('city-suggestions');
+    const confirmBtn = document.getElementById('confirm-city-btn');
+    const cancelBtn = document.getElementById('cancel-city-btn');
+    
+    if (!cityChangeBtn || !citySelector) {
+        console.error('عناصر شهر پیدا نشدند!');
+        return;
+    }
+    
+    console.log('تنظیم انتخاب شهر...');
+    
+    let selectedCity = null;
+    
+    // بارگذاری شهر انتخاب شده از localStorage
+    const savedCity = StorageManager.get('netcofe_selected_city');
+    if (savedCity) {
+        selectedCity = savedCity;
+        console.log('شهر ذخیره شده:', savedCity);
+        document.getElementById('weather-location').textContent = savedCity.name;
+    }
+    
+    // دکمه تغییر شهر
+    cityChangeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('کلیک روی تغییر شهر');
+        citySelector.classList.remove('hidden');
+        if (citySearchInput) {
+            citySearchInput.focus();
+            citySearchInput.value = selectedCity ? selectedCity.name : '';
+        }
+    });
+    
+    // جستجوی شهر در حین تایپ
+    let searchTimeout;
+    if (citySearchInput) {
+        citySearchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            const query = e.target.value.trim();
+            
+            if (query.length < 2) {
+                citySuggestions.innerHTML = '';
+                citySuggestions.style.display = 'none';
+                return;
+            }
+            
+            searchTimeout = setTimeout(async () => {
+                console.log('جستجوی شهر:', query);
+                await this.searchCities(query, citySuggestions);
+            }, 500);
+        });
+    }
+    
+    // انتخاب از لیست پیشنهادات
+    if (citySuggestions) {
+        citySuggestions.addEventListener('click', (e) => {
+            const suggestion = e.target.closest('.city-suggestion');
+            if (suggestion && suggestion.dataset.city) {
+                try {
+                    const cityData = JSON.parse(suggestion.dataset.city);
+                    console.log('شهر انتخاب شده:', cityData);
+                    
+                    selectedCity = {
+                        name: cityData.display_name.split(',')[0],
+                        coordinates: `${cityData.lat},${cityData.lon}`,
+                        fullName: cityData.display_name
+                    };
+                    
+                    if (citySearchInput) {
+                        citySearchInput.value = selectedCity.name;
+                    }
+                    
+                    citySuggestions.innerHTML = '';
+                    citySuggestions.style.display = 'none';
+                } catch (error) {
+                    console.error('خطا در پردازش شهر:', error);
+                }
+            }
+        });
+    }
+    
+    // تأیید انتخاب شهر - **این قسمت رو کامل تغییر دادم**
+// تأیید انتخاب شهر - ساده‌شده
+if (confirmBtn) {
+    confirmBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('کلیک روی تأیید شهر');
+        
+        const cityName = citySearchInput ? citySearchInput.value.trim() : '';
+        
+        if (!cityName) {
+            alert('لطفاً نام شهر را وارد کنید');
+            return;
+        }
+        
+        try {
+            const cities = await this.searchCitiesAPI(cityName);
+            if (cities && cities.length > 0) {
+                const city = cities[0];
+                const selectedCity = {
+                    name: city.name,
+                    coordinates: `${city.lat},${city.lon}`,
+                    fullName: city.display_name
+                };
+                
+                // ذخیره در localStorage
+                StorageManager.set('netcofe_selected_city', selectedCity);
+                console.log('شهر ذخیره شد:', selectedCity);
+                
+                // به‌روزرسانی مختصات
+                const [lat, lon] = selectedCity.coordinates.split(',').map(Number);
+                WeatherManager.userCoordinates = { latitude: lat, longitude: lon };
+                
+                // به‌روزرسانی نمایش
+                document.getElementById('weather-location').textContent = selectedCity.name;
+                citySelector.classList.add('hidden');
+                citySearchInput.value = '';
+                
+                // دریافت اطلاعات آب و هوای جدید
+                await this.refreshWeather();
+                
+            } else {
+                alert('شهر "' + cityName + '" پیدا نشد. لطفاً نام کامل‌تری وارد کنید.');
+            }
+        } catch (error) {
+            console.error('خطا در جستجوی شهر:', error);
+            alert('خطا در جستجوی شهر: ' + error.message);
+        }
+    });
+}
+
+    
+    // انصراف
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            citySelector.classList.add('hidden');
+            citySearchInput.value = '';
+            selectedCity = null;
+            if (citySuggestions) {
+                citySuggestions.innerHTML = '';
+                citySuggestions.style.display = 'none';
+            }
+        });
+    }
+    
+    // بستن modal با کلیک خارج
+    document.addEventListener('click', (e) => {
+        if (!citySelector.classList.contains('hidden') && 
+            !citySelector.contains(e.target) && 
+            e.target !== cityChangeBtn) {
+            citySelector.classList.add('hidden');
+        }
+    });
+}
+
+// تابع ساده شده برای جستجوی شهر
+static async searchCitiesAPI(query) {
+    console.log('در حال جستجوی API برای:', query);
+    try {
+        const response = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}+Iran&limit=5&accept-language=fa`
+        );
+        
+        console.log('پاسخ API:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`خطای HTTP: ${response.status}`);
+        }
+        
+        const cities = await response.json();
+        console.log('شهرهای پیدا شده:', cities.length);
+        
+        return cities.map(city => ({
+            name: city.display_name.split(',')[0],
+            lat: city.lat,
+            lon: city.lon,
+            display_name: city.display_name
+        }));
+        
+    } catch (error) {
+        console.error('خطا در جستجوی شهر:', error);
+        return [];
+    }
+}
+
+
+
+static async refreshWeather() {
+    try {
+        const weatherData = await WeatherManager.getWeather();
+        
+        // به‌روزرسانی اطلاعات آب و هوا
+        document.getElementById('weather-temp').textContent = weatherData.temperature;
+        document.getElementById('weather-icon').textContent = WeatherManager.getWeatherIcon(weatherData.condition);
+        document.getElementById('weather-desc').textContent = weatherData.condition;
+        document.getElementById('weather-wind').textContent = `${weatherData.windSpeed} ک.م/ساعت`;
+        
+    } catch (error) {
+        console.error('خطا در دریافت آب و هوا:', error);
+        
+        // نمایش داده‌های پیش‌فرض
+        const fallback = WeatherManager.getFallbackWeather();
+        document.getElementById('weather-temp').textContent = fallback.temperature;
+        document.getElementById('weather-icon').textContent = WeatherManager.getWeatherIcon(fallback.condition);
+        document.getElementById('weather-desc').textContent = fallback.condition;
+        document.getElementById('weather-wind').textContent = `${fallback.windSpeed} ک.م/ساعت`;
+    }
 }
 
 
@@ -975,8 +1977,6 @@ static loadDigitalClockStyles() {
 }
 
 
-
-
 static initDigitalClock() {
     // نام‌های ماه‌های شمسی
     const persianMonths = [
@@ -1003,11 +2003,11 @@ static initDigitalClock() {
         const now = new Date();
         const jalali = gregorianToJalali(now.getFullYear(), now.getMonth() + 1, now.getDate());
         
-        // زمان
+        // زمان - با اعداد فارسی
         let hours = now.getHours();
         let minutes = now.getMinutes();
         
-        // فرمت زمان: 23:25
+        // فرمت زمان: ۲۳:۲۵ (با اعداد فارسی)
         const timeStr = `${toPersianDigits(hours.toString().padStart(2, '0'))}:${toPersianDigits(minutes.toString().padStart(2, '0'))}`;
         
         // تاریخ: دوشنبه ۱۲ آذر
@@ -1042,8 +2042,185 @@ static initDigitalClock() {
 
 
 
+static loadWeatherStyles() {
+    if (document.getElementById('weather-styles')) return;
+    
+    const style = document.createElement('style');
+    style.id = 'weather-styles';
+    style.textContent = `
+        /* استایل‌های آب و هوا - چپ‌چین و بالا */
+        .weather-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start; /* چپ‌چین */
+            justify-content: flex-start; /* از بالا شروع کن */
+            height: 100%;
+            padding: 15px 0 0 20px; /* بالا ۱۵، چپ ۲۰، بقیه ۰ */
+            text-align: left;
+            direction: rtl;
+            box-sizing: border-box;
+        }
+        
+        .weather-loading {
+            font-size: 1rem;
+            color: #6b7280;
+            padding: 10px;
+        }
+        
+        .weather-data {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            width: 100%;
+        }
+        
+        .weather-temperature {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #3b82f6;
+            display: flex;
+            align-items: flex-start;
+            line-height: 1;
+            margin-bottom: 5px;
+        }
+        
+        .weather-unit {
+            font-size: 1.5rem;
+            margin-top: 0.5rem;
+            margin-right: 2px;
+        }
+        
+        .weather-condition {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .weather-condition #weather-icon {
+            font-size: 1.8rem;
+        }
+        
+        .weather-condition #weather-desc {
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: #6b7280;
+        }
+        
+        .weather-details {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: #9ca3af;
+        }
+        
+        .weather-wind, .weather-location {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        /* حالت تاریک */
+        [data-theme="dark"] .weather-temperature {
+            color: #60a5fa;
+        }
+        
+        [data-theme="dark"] .weather-condition #weather-desc {
+            color: #d1d5db;
+        }
+        
+        [data-theme="dark"] .weather-details {
+            color: #9ca3af;
+        }
+        
+        /* ریسپانسیو */
+        @media screen and (max-width: 768px) {
+            .weather-temperature {
+                font-size: 2.5rem;
+            }
+            
+            .weather-condition #weather-icon {
+                font-size: 1.5rem;
+            }
+            
+            .weather-condition #weather-desc {
+                font-size: 1rem;
+            }
+            
+            .weather-container {
+                padding: 10px 0 0 15px;
+            }
+        }
+        
+        @media screen and (max-width: 480px) {
+            .weather-temperature {
+                font-size: 2rem;
+            }
+            
+            .weather-condition #weather-icon {
+                font-size: 1.2rem;
+            }
+            
+            .weather-condition #weather-desc {
+                font-size: 0.9rem;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+}
 
-	
+static async initWeather() {
+    try {
+        const weatherData = await WeatherManager.getWeather();
+        
+        const loadingEl = document.getElementById('weather-loading');
+        const dataEl = document.getElementById('weather-data');
+        
+        if (loadingEl) loadingEl.classList.add('hidden');
+        if (dataEl) {
+            document.getElementById('weather-temp').textContent = weatherData.temperature;
+            document.getElementById('weather-icon').textContent = WeatherManager.getWeatherIcon(weatherData.condition);
+            document.getElementById('weather-desc').textContent = weatherData.condition;
+            document.getElementById('weather-wind').textContent = `${weatherData.windSpeed} کیلومتر/ساعت`;
+            
+            if (weatherData.isFallback) {
+                document.getElementById('weather-location').textContent = 'تهران (نمونه)';
+            } else {
+                document.getElementById('weather-location').textContent = 'موقعیت شما';
+            }
+            
+            dataEl.classList.remove('hidden');
+        }
+        
+        // به‌روزرسانی هر 10 دقیقه
+        setTimeout(() => this.initWeather(), 10 * 60 * 1000);
+        
+    } catch (error) {
+        console.error('خطا در دریافت آب و هوا:', error);
+        
+        // نمایش داده‌های پیش‌فرض
+        const loadingEl = document.getElementById('weather-loading');
+        const dataEl = document.getElementById('weather-data');
+        
+        if (loadingEl) loadingEl.classList.add('hidden');
+        if (dataEl) {
+            const fallback = WeatherManager.getFallbackWeather();
+            document.getElementById('weather-temp').textContent = fallback.temperature;
+            document.getElementById('weather-icon').textContent = WeatherManager.getWeatherIcon(fallback.condition);
+            document.getElementById('weather-desc').textContent = fallback.condition;
+            document.getElementById('weather-wind').textContent = `${fallback.windSpeed} کیلومتر/ساعت`;
+            document.getElementById('weather-location').textContent = 'تهران (پیش‌فرض)';
+            
+            dataEl.classList.remove('hidden');
+        }
+    }
+}
+
 	
 // در کلاس Renderer این تابع رو عوض کن:
 static categorizeBookmarks(bookmarks) {
