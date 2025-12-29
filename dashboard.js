@@ -3161,6 +3161,8 @@ class EventManager {
 }
 
 // ==================== Initialize Application ====================
+
+
 class App {
     static async init() {
         try {
@@ -3179,11 +3181,23 @@ class App {
             const settingsApplied = StorageManager.get('netcofe_settings_applied');
             if (!settingsApplied) {
                 try {
-                    const response = await fetch(CONFIG.SETTINGS_JSON_URL);
+                    // تشخیص نوع دستگاه
+                    const isMobile = this.isMobileDevice();
+                    const deviceType = isMobile ? 'mobile' : 'desktop';
+                    console.log('دستگاه تشخیص داده شد:', deviceType);
+                    
+                    // URL تنظیمات بر اساس دستگاه
+                    const settingsUrl = isMobile 
+                        ? 'https://raw.githubusercontent.com/ali73jn/netcofe/refs/heads/main/data/settings_mobile.json'
+                        : CONFIG.SETTINGS_JSON_URL;
+                    
+                    console.log('دریافت تنظیمات از:', settingsUrl);
+                    
+                    const response = await fetch(settingsUrl);
                     if (response.ok) {
                         const importedSettings = await response.json();
                         
-                        // دقیقاً کارهایی که importSettings انجام می‌دهد را اینجا تکرار می‌کنیم
+                        // اعمال تنظیمات
                         if (importedSettings.layout) {
                             state.layoutMap = importedSettings.layout;
                             StorageManager.set(CONFIG.STORAGE_KEYS.LAYOUT, state.layoutMap);
@@ -3202,12 +3216,26 @@ class App {
                             StorageManager.set(CONFIG.STORAGE_KEYS.SETTINGS, importedSettings.settings);
                             state.isCompactMode = importedSettings.settings.compactView || false;
                         }
+                        if (importedSettings.currentPaths) {
+                            state.currentPaths = importedSettings.currentPaths;
+                            StorageManager.set(CONFIG.STORAGE_KEYS.CURRENT_PATHS, state.currentPaths);
+                        }
 
                         StorageManager.set('netcofe_settings_applied', true);
-                        console.log('✅ تنظیمات اولیه با موفقیت از سرور اعمال شد.');
+                        console.log('✅ تنظیمات ' + deviceType + ' با موفقیت اعمال شد.');
+                    } else {
+                        console.warn('❌ فایل تنظیمات یافت نشد، استفاده از تنظیمات پیش‌فرض');
+                        // تنظیمات پیش‌فرض برای دستگاه موبایل
+                        if (isMobile) {
+                            this.applyDefaultMobileSettings();
+                        }
                     }
                 } catch (e) {
                     console.error('❌ خطا در دریافت فایل تنظیمات:', e);
+                    // تنظیمات پیش‌فرض برای دستگاه موبایل
+                    if (this.isMobileDevice()) {
+                        this.applyDefaultMobileSettings();
+                    }
                 }
             }
             // ---------------------------------------
@@ -3230,7 +3258,60 @@ class App {
             }
         }
     }
+
+    // تابع تشخیص دستگاه موبایل
+    static isMobileDevice() {
+        const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+        
+        // بررسی user agent
+        const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+        
+        // بررسی عرض صفحه
+        const isSmallScreen = window.innerWidth <= 768;
+        
+        // بررسی ویژگی‌های لمسی
+        const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        
+        // اگر یکی از شرایط برقرار بود، دستگاه موبایل است
+        return isMobileUA || (isSmallScreen && hasTouch);
+    }
+
+    // تابع اعمال تنظیمات پیش‌فرض موبایل
+    static applyDefaultMobileSettings() {
+        console.log('اعمال تنظیمات پیش‌فرض موبایل...');
+        
+        // تنظیمات layout برای موبایل
+        const mobileLayout = {
+            // کارت ساعت و آب‌وهوا در بالای صفحه با عرض کامل
+            'زمان و آب و هوا': {
+                col: 1,
+                row: 1,
+                w: 12, // عرض کامل در موبایل
+                h: 3,
+                view: "list"
+            }
+        };
+        
+        state.layoutMap = { ...state.layoutMap, ...mobileLayout };
+        StorageManager.set(CONFIG.STORAGE_KEYS.LAYOUT, state.layoutMap);
+        
+        // تنظیمات compact mode برای موبایل
+        const mobileSettings = {
+            autoDarkMode: true,
+            compactView: true, // حالت فشرده برای موبایل
+            mobileOptimized: true
+        };
+        
+        StorageManager.set(CONFIG.STORAGE_KEYS.SETTINGS, mobileSettings);
+        state.isCompactMode = true;
+        
+        // ذخیره شده است
+        StorageManager.set('netcofe_settings_applied', true);
+        
+        console.log('✅ تنظیمات پیش‌فرض موبایل اعمال شد.');
+    }
 }
+
 
 // ==================== راه‌اندازی برنامه ====================
 document.addEventListener('DOMContentLoaded', () => {
