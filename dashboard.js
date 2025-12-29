@@ -48,17 +48,12 @@ function gregorianToJalali(gy, gm, gd) {
     return [jy, jm, jd];
 }
 
+
 function getPersianDateTime() {
     const now = new Date();
     const jalali = gregorianToJalali(now.getFullYear(), now.getMonth() + 1, now.getDate());
     
-    // نام ماه‌های شمسی
-    const persianMonths = [
-        'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
-        'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'
-    ];
-    
-    // روزهای هفته
+    // روزهای هفته به فارسی
     const persianDays = [
         'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه',
         'پنجشنبه', 'جمعه', 'شنبه'
@@ -66,16 +61,31 @@ function getPersianDateTime() {
     
     const dayOfWeek = now.getDay(); // 0-6 (یکشنبه=0)
     
-    // فرمت زمان
-    const hours = now.getHours().toString().padStart(2, '0');
-    const minutes = now.getMinutes().toString().padStart(2, '0');
+    // زمان 24 ساعته
+    let hours = now.getHours();
+    let minutes = now.getMinutes();
+    let seconds = now.getSeconds();
+    
+    // تبدیل اعداد به فارسی
+    const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+    const toPersianDigits = (num) => {
+        return num.toString().replace(/\d/g, d => persianDigits[d]);
+    };
+    
+    // تاریخ شمسی به صورت عددی: سال/ماه/روز
+    const persianDateNumeric = `${toPersianDigits(jalali[0])}/${toPersianDigits(jalali[1])}/${toPersianDigits(jalali[2])}`;
     
     return {
-        date: `${jalali[2]} ${persianMonths[jalali[1] - 1]} ${jalali[0]}`,
+        date: persianDateNumeric, // فرمت: ۱۴۰۴/۱۰/۸
         day: persianDays[dayOfWeek],
-        time: `${hours}:${minutes}`
+        time24: `${toPersianDigits(hours.toString().padStart(2, '0'))}:${toPersianDigits(minutes.toString().padStart(2, '0'))}:${toPersianDigits(seconds.toString().padStart(2, '0'))}`,
+        hours: toPersianDigits(hours.toString().padStart(2, '0')),
+        minutes: toPersianDigits(minutes.toString().padStart(2, '0')),
+        seconds: toPersianDigits(seconds.toString().padStart(2, '0'))
     };
 }
+
+
 
 // ==================== وضعیت برنامه ====================
 let state = {
@@ -802,79 +812,106 @@ class Renderer {
     }
 
 
-    // ==================== ایجاد کارت زمان و تاریخ ====================
-    static createDateTimeCard(container) {
-        const category = 'ویجت ها';
-        const layout = state.layoutMap[category] || { 
-            col: 1, 
-            row: 1, 
-            w: 4, 
-            h: 3,
-            view: "list"
-        };
-        
-        state.layoutMap[category] = layout;
-        
-        const card = document.createElement('div');
-        card.className = 'bookmark-card datetime-card';
-        card.dataset.category = category;
-        
-        // تنظیم موقعیت و ابعاد
-        card.style.gridColumnStart = layout.col;
-        card.style.gridRowStart = layout.row;
-        
-        const actualWidthInPixels =
-            (layout.w * CONFIG.GRID_CELL_SIZE) +
-            ((layout.w - 1) * CONFIG.GRID_GAP) +
-            CONFIG.HORIZONTAL_PIXEL_OFFSET;
-        
-        card.style.width = `${actualWidthInPixels}px`;
-        card.style.gridColumnEnd = `span ${layout.w}`;
-        card.style.gridRowEnd = `span ${layout.h}`;
-        
-        // محتوای اولیه
-        const dateTime = getPersianDateTime();
-        card.innerHTML = `
-            <div class="card-header">
-                <div class="card-title">${category}</div>
-                <button class="card-btn btn-drag visible-on-edit">::</button>
+
+// ==================== ایجاد کارت زمان و تاریخ با استایل مدرن ====================
+static createDateTimeCard(container) {
+    const category = 'زمان و تاریخ';
+    // موقعیت در گوشه بالا سمت راست
+    const totalGridColumns = 12;
+    const defaultWidth = 4;
+    const defaultHeight = 3;
+    
+    const layout = state.layoutMap[category] || { 
+        col: totalGridColumns - defaultWidth + 1,
+        row: 1,
+        w: defaultWidth, 
+        h: defaultHeight,
+        view: "list"
+    };
+    
+    state.layoutMap[category] = layout;
+    
+    const card = document.createElement('div');
+    card.className = 'bookmark-card datetime-card';
+    card.dataset.category = category;
+    
+    // تنظیم موقعیت و ابعاد
+    card.style.gridColumnStart = layout.col;
+    card.style.gridRowStart = layout.row;
+    
+    const actualWidthInPixels =
+        (layout.w * CONFIG.GRID_CELL_SIZE) +
+        ((layout.w - 1) * CONFIG.GRID_GAP) +
+        CONFIG.HORIZONTAL_PIXEL_OFFSET;
+    
+    card.style.width = `${actualWidthInPixels}px`;
+    card.style.gridColumnEnd = `span ${layout.w}`;
+    card.style.gridRowEnd = `span ${layout.h}`;
+    
+    // محتوای اولیه
+    const dateTime = getPersianDateTime();
+    card.innerHTML = `
+        <div class="card-header">
+            <div class="card-title">${category}</div>
+            <button class="card-btn btn-drag visible-on-edit">::</button>
+        </div>
+        <div class="card-content datetime-content">
+            <div class="modern-clock">
+                <div class="clock-display">
+                    <div class="time-section">
+                        <div class="time-digits">
+                            <span class="digit-block hours">${dateTime.hours}</span>
+                            <span class="colon">:</span>
+                            <span class="digit-block minutes">${dateTime.minutes}</span>
+                            <span class="colon">:</span>
+                            <span class="digit-block seconds">${dateTime.seconds}</span>
+                        </div>
+                    </div>
+                    <div class="date-section">
+                        <div class="date-display">
+                            <span class="persian-date">${dateTime.date}</span>
+                            <span class="day-name">${dateTime.day}</span>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="card-content datetime-content">
-                <div class="persian-day">${dateTime.day}</div>
-                <div class="persian-date">${dateTime.date}</div>
-                <div class="persian-time">${dateTime.time}</div>
-            </div>
-            <div class="resize-handle visible-on-edit"></div>
-        `;
-        
-        // افزودن رویدادهای درگ و ریسایز
-        const dragBtn = card.querySelector('.btn-drag');
-        const resizeEl = card.querySelector('.resize-handle');
-        
-        if (dragBtn) {
-            dragBtn.addEventListener('mousedown', (e) => DragResizeManager.startDrag(e, card));
-        }
-        
-        if (resizeEl) {
-            resizeEl.addEventListener('mousedown', (e) => DragResizeManager.startResize(e, card));
-        }
-        
-        container.appendChild(card);
-        
-        // به‌روزرسانی زمان هر دقیقه
-        setInterval(() => {
-            const dateTime = getPersianDateTime();
-            const content = card.querySelector('.datetime-content');
-            if (content) {
-                content.innerHTML = `
-                    <div class="persian-day">${dateTime.day}</div>
-                    <div class="persian-date">${dateTime.date}</div>
-                    <div class="persian-time">${dateTime.time}</div>
-                `;
-            }
-        }, 60000); // هر دقیقه به‌روزرسانی شود
+        </div>
+        <div class="resize-handle visible-on-edit"></div>
+    `;
+    
+    // افزودن رویدادهای درگ و ریسایز
+    const dragBtn = card.querySelector('.btn-drag');
+    const resizeEl = card.querySelector('.resize-handle');
+    
+    if (dragBtn) {
+        dragBtn.addEventListener('mousedown', (e) => DragResizeManager.startDrag(e, card));
     }
-	
+    
+    if (resizeEl) {
+        resizeEl.addEventListener('mousedown', (e) => DragResizeManager.startResize(e, card));
+    }
+    
+    container.appendChild(card);
+    
+    // به‌روزرسانی زمان هر ثانیه برای حرکت ثانیه‌شمار
+    const timeInterval = setInterval(() => {
+        const dateTime = getPersianDateTime();
+        const hoursEl = card.querySelector('.hours');
+        const minutesEl = card.querySelector('.minutes');
+        const secondsEl = card.querySelector('.seconds');
+        const dateEl = card.querySelector('.persian-date');
+        const dayEl = card.querySelector('.day-name');
+        
+        if (hoursEl) hoursEl.textContent = dateTime.hours;
+        if (minutesEl) minutesEl.textContent = dateTime.minutes;
+        if (secondsEl) secondsEl.textContent = dateTime.seconds;
+        if (dateEl) dateEl.textContent = dateTime.date;
+        if (dayEl) dayEl.textContent = dateTime.day;
+    }, 1000);
+    
+    // ذخیره interval برای پاکسازی در صورت نیاز
+    card.dataset.intervalId = timeInterval;
+}	
 	
 	
 // در کلاس Renderer این تابع رو عوض کن:
