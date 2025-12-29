@@ -804,7 +804,7 @@ class Renderer {
 
     // ==================== ایجاد کارت زمان و تاریخ ====================
     static createDateTimeCard(container) {
-        const category = 'زمان و تاریخ';
+        const category = 'ویجت ها';
         const layout = state.layoutMap[category] || { 
             col: 1, 
             row: 1, 
