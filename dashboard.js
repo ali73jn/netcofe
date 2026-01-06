@@ -2761,7 +2761,7 @@ class App {
             if (firstRun) {
                 StorageManager.set('netcofe_first_run', true);
                 setTimeout(() => {
-                    alert('🎉 به همیار کافینت خوش آمدید!');
+                    //alert('🎉 به همیار کافینت خوش آمدید!');
                 }, 1000);
             }
             
