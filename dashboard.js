@@ -416,13 +416,27 @@ class FaviconManager {
 
 // ==================== سیستم آب و هوا ====================
 
+// ==================== سیستم آب و هوا ====================
+
 class WeatherManager {
     static userCoordinates = null;
     
     static async getWeather() {
         try {
-            // استفاده از مختصات کاربر یا مختصات ذخیره شده
-            const coordinates = this.userCoordinates || await this.getUserLocation();
+            // فقط از شهر انتخاب شده استفاده کن
+            const savedCity = StorageManager.get('netcofe_selected_city');
+            let coordinates;
+            
+            if (savedCity) {
+                // استفاده از مختصات شهر انتخاب شده
+                const [lat, lon] = savedCity.coordinates.split(',').map(Number);
+                coordinates = { latitude: lat, longitude: lon };
+                this.userCoordinates = coordinates;
+            } else {
+                // موقعیت پیش‌فرض (تهران)
+                coordinates = { latitude: 35.6892, longitude: 51.3890 };
+                this.userCoordinates = coordinates;
+            }
             
             const response = await fetch(
                 `https://api.open-meteo.com/v1/forecast?latitude=${coordinates.latitude}&longitude=${coordinates.longitude}&current_weather=true&timezone=auto`
@@ -439,51 +453,8 @@ class WeatherManager {
         }
     }
 
-    static getUserLocation() {
-        return new Promise((resolve, reject) => {
-            // اول بررسی کن که آیا شهر از قبل انتخاب شده
-            const savedCity = StorageManager.get('netcofe_selected_city');
-            if (savedCity) {
-                const [lat, lon] = savedCity.coordinates.split(',').map(Number);
-                this.userCoordinates = { latitude: lat, longitude: lon };
-                resolve(this.userCoordinates);
-                return;
-            }
-            
-            // اگر نه، از geolocation استفاده کن
-            if (!navigator.geolocation) {
-                // موقعیت پیش‌فرض (تهران)
-                const defaultCoords = { latitude: 35.6892, longitude: 51.3890 };
-                this.userCoordinates = defaultCoords;
-                resolve(defaultCoords);
-                return;
-            }
-            
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const coords = {
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude
-                    };
-                    this.userCoordinates = coords;
-                    resolve(coords);
-                },
-                (error) => {
-                    console.warn('خطا در دریافت موقعیت:', error);
-                    // موقعیت پیش‌فرض (تهران)
-                    const defaultCoords = { latitude: 35.6892, longitude: 51.3890 };
-                    this.userCoordinates = defaultCoords;
-                    resolve(defaultCoords);
-                },
-                {
-                    enableHighAccuracy: false,
-                    timeout: 10000,
-                    maximumAge: 300000
-                }
-            );
-        });
-    }
-
+    // این تابع کاملاً حذف شده و نیازی نیست
+    // static getUserLocation() { ... }
 
     static formatWeatherData(data) {
         const current = data.current_weather;
@@ -551,6 +522,9 @@ class WeatherManager {
         return icons[condition] || '🌈';
     }
 }
+
+
+
 
 // ==================== مدیریت تم و ظاهر ====================
 class ThemeManager {
@@ -1788,39 +1762,42 @@ static loadCombinedStyles() {
         }, msUntilNextMinute);
     }
 
-    // ========== راه‌اندازی آب‌وهوا ==========
-    static async initCombinedWeather() {
-        try {
-            // بارگذاری شهر انتخاب شده
-            const savedCity = StorageManager.get('netcofe_selected_city');
-            if (savedCity) {
-                document.getElementById('weather-location').textContent = savedCity.name;
-            }
-            
-            // دریافت اطلاعات آب و هوا
-            const weatherData = await WeatherManager.getWeather();
-            
-            // به‌روزرسانی اطلاعات آب و هوا
-            document.getElementById('weather-temp').textContent = weatherData.temperature;
-            document.getElementById('weather-icon').textContent = WeatherManager.getWeatherIcon(weatherData.condition);
-            document.getElementById('weather-desc').textContent = weatherData.condition;
-            document.getElementById('weather-wind').textContent = `${weatherData.windSpeed} ک.م/ساعت`;
-            
-            // به‌روزرسانی هر 10 دقیقه
-            setTimeout(() => this.initCombinedWeather(), 10 * 60 * 1000);
-            
-        } catch (error) {
-            console.error('خطا در دریافت آب و هوا:', error);
-            
-            // نمایش داده‌های پیش‌فرض
-            const fallback = WeatherManager.getFallbackWeather();
-            document.getElementById('weather-temp').textContent = fallback.temperature;
-            document.getElementById('weather-icon').textContent = WeatherManager.getWeatherIcon(fallback.condition);
-            document.getElementById('weather-desc').textContent = fallback.condition;
-            document.getElementById('weather-wind').textContent = `${fallback.windSpeed} ک.م/ساعت`;
-            document.getElementById('weather-location').textContent = 'تهران';
-        }
+
+static async initCombinedWeather() {
+    try {
+        // بارگذاری شهر انتخاب شده
+        const savedCity = StorageManager.get('netcofe_selected_city');
+        const cityName = savedCity ? savedCity.name : 'تهران';
+        
+        // نمایش نام شهر در کارت
+        document.getElementById('weather-location').textContent = cityName;
+        
+        // دریافت اطلاعات آب و هوا
+        const weatherData = await WeatherManager.getWeather();
+        
+        // به‌روزرسانی اطلاعات آب و هوا
+        document.getElementById('weather-temp').textContent = weatherData.temperature;
+        document.getElementById('weather-icon').textContent = WeatherManager.getWeatherIcon(weatherData.condition);
+        document.getElementById('weather-desc').textContent = weatherData.condition;
+        document.getElementById('weather-wind').textContent = `${weatherData.windSpeed} ک.م/ساعت`;
+        
+        // به‌روزرسانی هر 10 دقیقه
+        setTimeout(() => this.initCombinedWeather(), 10 * 60 * 1000);
+        
+    } catch (error) {
+        console.error('خطا در دریافت آب و هوا:', error);
+        
+        // نمایش داده‌های پیش‌فرض
+        const fallback = WeatherManager.getFallbackWeather();
+        document.getElementById('weather-temp').textContent = fallback.temperature;
+        document.getElementById('weather-icon').textContent = WeatherManager.getWeatherIcon(fallback.condition);
+        document.getElementById('weather-desc').textContent = fallback.condition;
+        document.getElementById('weather-wind').textContent = `${fallback.windSpeed} ک.م/ساعت`;
+        document.getElementById('weather-location').textContent = 'تهران';
     }
+}
+
+
 
     // ========== به‌روزرسانی آب‌وهوا ==========
     static async refreshWeather() {
