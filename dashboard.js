@@ -2304,25 +2304,570 @@ static async initCombinedWeather() {
     }
 
     // ========== اعمال فیلتر جستجو ==========
-    static applySearchFilter(searchTerm) {
-        const tiles = document.querySelectorAll('.tile');
+static applySearchFilter(searchTerm) {
+    const tiles = document.querySelectorAll('.tile');
+    
+    if (!searchTerm || searchTerm.trim() === '') {
+        // اگر جستجو خالیه، همه tileها رو نشون بده
         tiles.forEach(tile => {
-            const title = tile.querySelector('.tile-name')?.textContent.toLowerCase() || '';
-            const category = tile.dataset.category?.toLowerCase() || '';
-            const tags = tile.dataset.tags?.toLowerCase() || '';
-            
-            const matches = title.includes(searchTerm) || 
-                           category.includes(searchTerm) || 
-                           tags.includes(searchTerm);
-            
-            tile.classList.toggle('filtered-out', !matches);
-            tile.classList.toggle('highlighted', matches && searchTerm.length > 0);
+            tile.classList.remove('filtered-out');
+            tile.classList.remove('highlighted');
         });
+        return;
     }
+    
+    // فیلتر فقط روی tileهای نمایش داده شده
+    tiles.forEach(tile => {
+        const title = tile.querySelector('.tile-name')?.textContent.toLowerCase() || '';
+        const matches = title.includes(searchTerm);
+        
+        tile.classList.toggle('filtered-out', !matches);
+        tile.classList.toggle('highlighted', matches);
+    });
+}
+}
+
+
+// ==================== سیستم جستجوی کامل ====================
+class SearchManager {
+    // جمع‌آوری تمام بوکمارک‌ها به صورت تخت (فلت)
+    static flattenBookmarks(bookmarks) {
+        let results = [];
+        
+        if (!bookmarks || !Array.isArray(bookmarks)) return results;
+        
+        for (const item of bookmarks) {
+            // خود آیتم رو اضافه کن
+            results.push(item);
+            
+            // اگر پوشه است، childrenهایش رو هم اضافه کن
+            if (item.children && Array.isArray(item.children)) {
+                results = results.concat(this.flattenBookmarks(item.children));
+            }
+        }
+        
+        return results;
+    }
+    
+    // جستجو در همه بوکمارک‌ها
+    static searchAllBookmarks(searchTerm) {
+        if (!searchTerm || searchTerm.trim() === '') {
+            return {
+                results: [],
+                total: 0,
+                folders: 0,
+                bookmarks: 0
+            };
+        }
+        
+        const allItems = this.flattenBookmarks(state.bookmarks);
+        const term = searchTerm.toLowerCase().trim();
+        
+        const results = allItems.filter(item => {
+            // جستجو در تمام فیلدها
+            const title = (item.title || '').toLowerCase();
+            const description = (item.description || '').toLowerCase();
+            const url = (item.url || '').toLowerCase();
+            const tags = Array.isArray(item.tags) ? 
+                item.tags.map(t => t.toLowerCase()).join(' ') : '';
+            const category = (item.category || '').toLowerCase();
+            
+            return title.includes(term) ||
+                   description.includes(term) ||
+                   url.includes(term) ||
+                   tags.includes(term) ||
+                   category.includes(term);
+        });
+        
+        return {
+            results,
+            total: results.length,
+            folders: results.filter(item => item.children || item.type === 'folder').length,
+            bookmarks: results.filter(item => !item.children && item.type !== 'folder').length
+        };
+    }
+    
+    // نمایش نتایج جستجو در یک مودال
+// نمایش نتایج جستجو در یک مودال
+static showSearchResults(searchTerm, results) {
+    // حذف مودال قبلی اگر وجود داره
+    const existingModal = document.getElementById('search-results-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // پیدا کردن موقعیت کادر جستجو
+    const searchContainer = document.getElementById('search-container');
+    const searchInput = document.getElementById('bookmark-search');
+    
+    if (!searchContainer || !searchInput) return;
+    
+    // محاسبه موقعیت
+    const containerRect = searchContainer.getBoundingClientRect();
+    const inputRect = searchInput.getBoundingClientRect();
+    
+    // ایجاد مودال جدید
+    const modal = document.createElement('div');
+    modal.id = 'search-results-modal';
+    modal.className = 'search-modal';
+    
+    let resultsHTML = '';
+    
+    if (results.total === 0) {
+        resultsHTML = `
+            <div class="no-results">
+                <p>❌ هیچ نتیجه‌ای برای "${searchTerm}" یافت نشد</p>
+            </div>
+        `;
+    } else {
+        // گروه‌بندی نتایج بر اساس دسته‌بندی/پوشه
+        const groupedResults = this.groupResultsByCategory(results.results);
+        
+        for (const [category, items] of Object.entries(groupedResults)) {
+            resultsHTML += `
+                <div class="result-category">
+                    <h4>📁 ${category} (${items.length})</h4>
+                    <div class="result-items">
+            `;
+            
+            // محدود کردن نمایش به 10 آیتم اول در هر دسته
+            const displayItems = items.slice(0, 10);
+            
+            for (const item of displayItems) {
+                const isFolder = item.children || item.type === 'folder';
+                const icon = isFolder ? '📁' : '🔗';
+                
+                resultsHTML += `
+                    <div class="result-item ${isFolder ? 'result-folder' : 'result-bookmark'}" 
+                         data-id="${item.id}" 
+                         data-category="${category}">
+                        <div class="result-icon">${icon}</div>
+                        <div class="result-info">
+                            <div class="result-title">${item.title}</div>
+                            ${item.description ? 
+                                `<div class="result-desc">${item.description}</div>` : ''}
+                        </div>
+                        ${item.url && !isFolder ? 
+                            `<a href="${item.url}" target="_blank" class="result-link" title="باز کردن">🔗</a>` : 
+                            '<button class="result-open-folder" title="باز کردن پوشه">📂</button>'
+                        }
+                    </div>
+                `;
+            }
+            
+            // اگر آیتم‌های بیشتری وجود دارد
+            if (items.length > 10) {
+                resultsHTML += `
+                    <div class="more-results">
+                        +${items.length - 10} مورد دیگر...
+                    </div>
+                `;
+            }
+            
+            resultsHTML += `
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
+    modal.innerHTML = `
+        <div class="search-modal-overlay" id="search-modal-overlay"></div>
+        <div class="search-modal-content" id="search-modal-content">
+            <div class="search-modal-header">
+                <h3>🔍 نتایج برای "${searchTerm}"</h3>
+                <button class="close-search-modal" id="close-search-modal">×</button>
+            </div>
+            <div class="search-modal-body">
+                ${resultsHTML}
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // تنظیم موقعیت مودال دقیقاً زیر کادر جستجو
+    const modalContent = document.getElementById('search-modal-content');
+    if (modalContent) {
+        modalContent.style.position = 'absolute';
+        modalContent.style.top = `${containerRect.bottom + 5}px`;
+        modalContent.style.left = `${containerRect.left}px`;
+        modalContent.style.width = `${containerRect.width}px`;
+        modalContent.style.maxHeight = '400px';
+    }
+    
+    // استایل‌های مودال
+    this.addSearchModalStyles();
+    
+    // رویدادهای مودال
+    this.setupSearchModalEvents();
+}  
+	
+	
+	
+    // گروه‌بندی نتایج بر اساس دسته‌بندی
+    static groupResultsByCategory(results) {
+        const grouped = {};
+        
+        for (const item of results) {
+            let category = 'سایر';
+            
+            if (item._parentCategory) {
+                category = item._parentCategory;
+            } else if (item.category) {
+                category = item.category;
+            } else if (item.children) {
+                category = 'پوشه‌ها';
+            }
+            
+            if (!grouped[category]) {
+                grouped[category] = [];
+            }
+            
+            grouped[category].push(item);
+        }
+        
+        return grouped;
+    }
+    
+// استایل‌های مودال جستجو
+static addSearchModalStyles() {
+    if (document.getElementById('search-modal-styles')) return;
+    
+    const style = document.createElement('style');
+    style.id = 'search-modal-styles';
+    style.textContent = `
+        /* مودال نتایج جستجو - زیر کادر جستجو */
+        .search-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 9999;
+        }
+        
+        .search-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: transparent;
+            z-index: 9998;
+        }
+        
+        .search-modal-content {
+            position: fixed;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            z-index: 9999;
+            overflow: hidden;
+            border: 1px solid #e0e0e0;
+            max-height: 400px;
+            display: flex;
+            flex-direction: column;
+            direction: rtl;
+        }
+        
+        [data-theme="dark"] .search-modal-content {
+            background: #2d3748;
+            border-color: #4a5568;
+            color: #e2e8f0;
+        }
+        
+        .search-modal-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid #e5e7eb;
+            background: #f9fafb;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        
+        [data-theme="dark"] .search-modal-header {
+            background: #374151;
+            border-bottom-color: #4b5563;
+        }
+        
+        .search-modal-header h3 {
+            margin: 0;
+            font-family: 'Vazirmatn', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 80%;
+        }
+        
+        [data-theme="dark"] .search-modal-header h3 {
+            color: #f3f4f6;
+        }
+        
+        .close-search-modal {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #6b7280;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+        
+        .close-search-modal:hover {
+            background: #f3f4f6;
+            color: #374151;
+        }
+        
+        [data-theme="dark"] .close-search-modal:hover {
+            background: #4b5563;
+            color: #f3f4f6;
+        }
+        
+        .search-modal-body {
+            padding: 8px 0;
+            overflow-y: auto;
+            flex: 1;
+        }
+        
+        .no-results {
+            padding: 20px 16px;
+            text-align: center;
+            color: #6b7280;
+            font-size: 14px;
+        }
+        
+        .result-category {
+            margin-bottom: 12px;
+        }
+        
+        .result-category h4 {
+            margin: 0 0 8px 0;
+            padding: 0 16px;
+            font-family: 'Vazirmatn', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            color: #6b7280;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        [data-theme="dark"] .result-category h4 {
+            color: #d1d5db;
+        }
+        
+        .result-items {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .result-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 16px;
+            gap: 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .result-item:hover {
+            background: #f3f4f6;
+        }
+        
+        [data-theme="dark"] .result-item:hover {
+            background: #374151;
+        }
+        
+        .result-icon {
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        
+        .result-info {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .result-title {
+            font-weight: 500;
+            font-family: 'Vazirmatn', sans-serif;
+            color: #374151;
+            font-size: 13px;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        [data-theme="dark"] .result-title {
+            color: #f3f4f6;
+        }
+        
+        .result-desc {
+            font-size: 11px;
+            color: #6b7280;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .result-link, .result-open-folder {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            color: #6b7280;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .result-link:hover, .result-open-folder:hover {
+            background: #e5e7eb;
+            color: #3b82f6;
+        }
+        
+        .more-results {
+            padding: 8px 16px;
+            font-size: 12px;
+            color: #6b7280;
+            text-align: center;
+            background: #f9fafb;
+            border-top: 1px solid #e5e7eb;
+            margin-top: 8px;
+        }
+        
+        [data-theme="dark"] .more-results {
+            background: #374151;
+            border-top-color: #4b5563;
+            color: #d1d5db;
+        }
+        
+        /* اسکرول بار */
+        .search-modal-body::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .search-modal-body::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        [data-theme="dark"] .search-modal-body::-webkit-scrollbar-track {
+            background: #374151;
+        }
+        
+        .search-modal-body::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        
+        .search-modal-body::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+    `;
+    document.head.appendChild(style);
+}
+	
+	
+	
+	
+// رویدادهای مودال جستجو
+static setupSearchModalEvents() {
+    const modal = document.getElementById('search-results-modal');
+    const closeModalBtn = document.getElementById('close-search-modal');
+    const overlay = document.getElementById('search-modal-overlay');
+    
+    if (!modal) return;
+    
+    const closeModal = () => {
+        modal.remove();
+    };
+    
+    if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+    if (overlay) overlay.addEventListener('click', closeModal);
+    
+    // کلیک روی آیتم‌ها
+    modal.querySelectorAll('.result-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            
+            const isFolder = item.classList.contains('result-folder');
+            const itemId = item.dataset.id;
+            const category = item.dataset.category;
+            
+            if (isFolder) {
+                // برای پوشه: پیدا کردن مسیر و ناوبری
+                const path = this.findPathToFolder(state.bookmarks, itemId, category);
+                
+                if (path && path.length > 0) {
+                    // بستن مودال
+                    closeModal();
+                    
+                    // پاک کردن جستجو
+                    state.searchTerm = '';
+                    const searchInput = document.getElementById('bookmark-search');
+                    if (searchInput) searchInput.value = '';
+                    
+                    // پنهان کردن کانتینر جستجو
+                    const searchContainer = document.getElementById('search-container');
+                    if (searchContainer) searchContainer.classList.add('hidden');
+                    
+                    // رفتن به پوشه مورد نظر
+                    setTimeout(() => {
+                        Renderer.navigateToPath(category, path);
+                    }, 300);
+                }
+            }
+        });
+    });
 }
 
 
 
+ 
+    // پیدا کردن مسیر به یک پوشه خاص
+    static findPathToFolder(items, targetId, category, currentPath = []) {
+        if (!items || !Array.isArray(items)) return null;
+        
+        for (const item of items) {
+            if (item.id === targetId) {
+                return currentPath.concat(item.id);
+            }
+            
+            if (item.children && item.children.length > 0) {
+                const found = this.findPathToFolder(
+                    item.children, 
+                    targetId, 
+                    category, 
+                    currentPath.concat(item.id)
+                );
+                
+                if (found) return found;
+            }
+        }
+        
+        return null;
+    }
+}
 
 // ==================== Event Handlers ====================
 class EventManager {
@@ -2395,29 +2940,75 @@ class EventManager {
             });
         }
         
-        // دکمه بستن جستجو
-        const closeSearchBtn = document.getElementById('close-search');
-        if (closeSearchBtn) {
-            closeSearchBtn.addEventListener('click', () => {
-                const searchContainer = document.getElementById('search-container');
-                searchContainer?.classList.add('hidden');
-                state.searchTerm = '';
-                
-                const searchInput = document.getElementById('bookmark-search');
-                if (searchInput) searchInput.value = '';
-                
-                Renderer.applySearchFilter('');
-            });
+// در کلاس EventManager - بخش جستجو:
+// در EventManager.setup() - بخش جستجو:
+const searchInput = document.getElementById('bookmark-search');
+if (searchInput) {
+    let searchTimeout;
+    
+    searchInput.addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        state.searchTerm = e.target.value.trim();
+        
+        // بستن مودال قبلی
+        const existingModal = document.getElementById('search-results-modal');
+        if (existingModal) {
+            existingModal.remove();
         }
         
-        // ورودی جستجو
-        const searchInput = document.getElementById('bookmark-search');
-        if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
-                state.searchTerm = e.target.value.toLowerCase().trim();
-                Renderer.applySearchFilter(state.searchTerm);
-            });
+        if (state.searchTerm.length === 0) {
+            // اگر جستجو خالیه
+            Renderer.applySearchFilter('');
+            return;
         }
+        
+        // تأخیر 300ms
+        searchTimeout = setTimeout(() => {
+            // جستجوی کامل
+            const searchResults = SearchManager.searchAllBookmarks(state.searchTerm);
+            
+            if (searchResults.total > 0) {
+                // نمایش نتایج در مودال
+                SearchManager.showSearchResults(state.searchTerm, searchResults);
+            } else {
+                // اگر نتیجه‌ای نبود
+                Renderer.applySearchFilter(state.searchTerm.toLowerCase());
+            }
+        }, 300);
+    });
+    
+    // بستن مودال با Escape
+    searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('search-results-modal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+    });
+}
+// دکمه بستن جستجو
+const closeSearchBtn = document.getElementById('close-search');
+if (closeSearchBtn) {
+    closeSearchBtn.addEventListener('click', () => {
+        const searchContainer = document.getElementById('search-container');
+        if (searchContainer) {
+            searchContainer.classList.add('hidden');
+        }
+        
+        state.searchTerm = '';
+        const searchInput = document.getElementById('bookmark-search');
+        if (searchInput) searchInput.value = '';
+        
+        Renderer.applySearchFilter('');
+        
+        // بستن مودال جستجو اگر بازه
+        const searchModal = document.getElementById('search-results-modal');
+        if (searchModal) {
+            searchModal.remove();
+        }
+    });
+}
         
         // دکمه پس‌زمینه
         const bgBtn = document.getElementById('set-background-btn');
