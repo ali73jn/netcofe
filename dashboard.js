@@ -92,6 +92,8 @@ let state = {
     isEditMode: false,
     isDarkMode: false,
     isCompactMode: false,
+	backgroundBlur: 0.2,
+	zoomLevel: 100, // مقدار پیش‌فرض 100%
     currentPaths: {}, // ذخیره مسیر فعلی برای هر دسته‌بندی
     dragInfo: null,
     resizeInfo: null,
@@ -414,10 +416,468 @@ class FaviconManager {
 }
 
 
-// ==================== سیستم آب و هوا ====================
+// ==================== مدیریت زوم ====================
+class ZoomManager {
+    static loadZoom() {
+        const savedZoom = StorageManager.get('netcofe_zoom_level');
+        if (savedZoom !== null && savedZoom >= 75 && savedZoom <= 125) {
+            state.zoomLevel = savedZoom;
+            console.log('زوم بارگذاری شد:', state.zoomLevel + '%');
+        } else {
+            state.zoomLevel = 100;
+            console.log('زوم پیش‌فرض:', state.zoomLevel + '%');
+        }
+    }
+
+
+static applyZoom() {
+    const zoomPercent = state.zoomLevel;
+    const zoomWrapper = document.getElementById('zoom-wrapper');
+    
+    console.log('اعمال زوم روی zoom-wrapper:', zoomPercent + '%');
+    
+    if (zoomWrapper) {
+        // اضافه/حذف کلاس zoomed
+        if (zoomPercent !== 100) {
+            zoomWrapper.classList.add('zoomed');
+        } else {
+            zoomWrapper.classList.remove('zoomed');
+        }
+        
+        // روش 1: استفاده از CSS zoom
+        zoomWrapper.style.zoom = `${zoomPercent}%`;
+        
+        // روش 2: fallback برای مرورگرهایی که zoom رو پشتیبانی نمی‌کنن
+        if (zoomWrapper.style.zoom === undefined) {
+            const scale = zoomPercent / 100;
+            zoomWrapper.style.transform = `scale(${scale})`;
+            zoomWrapper.style.transformOrigin = 'center top';
+            
+            // تنظیم width برای جلوگیری از جمع شدن
+            const originalWidth = zoomWrapper.scrollWidth;
+            const containerWidth = originalWidth * scale;
+            
+            // اگر container از viewport بزرگتر شد، overflow رو فعال کن
+            if (containerWidth > window.innerWidth - 50) {
+                zoomWrapper.style.overflowX = 'auto';
+                zoomWrapper.style.width = `${containerWidth}px`;
+            } else {
+                zoomWrapper.style.overflowX = 'visible';
+                zoomWrapper.style.width = '100%';
+            }
+        }
+        
+        // کنترل‌منو رو کاملاً از تأثیر زوم خارج کن
+        const controlMenu = document.getElementById('control-menu');
+        if (controlMenu) {
+            controlMenu.style.transform = 'none';
+            controlMenu.style.zoom = '100%';
+            controlMenu.style.position = 'fixed';
+            controlMenu.style.bottom = '20px';
+            controlMenu.style.right = '20px';
+            controlMenu.style.zIndex = '99999';
+        }
+        
+        // sub-controls رو هم چک کن
+        const subControls = document.getElementById('sub-controls');
+        if (subControls) {
+            subControls.style.transform = 'none';
+            subControls.style.zoom = '100%';
+        }
+        
+        // مطمئن شو بلور تحت تأثیر زوم قرار نگیره
+        const blurOverlay = document.getElementById('background-overlay');
+        if (blurOverlay) {
+            blurOverlay.style.transform = 'none';
+            blurOverlay.style.zoom = '100%';
+        }
+		
+        console.log('زوم روی wrapper اعمال شد:', zoomPercent + '%');
+    }
+}
+
+
+
+    static saveZoom() {
+        StorageManager.set('netcofe_zoom_level', state.zoomLevel);
+        console.log('زوم ذخیره شد:', state.zoomLevel + '%');
+    }
+
+    static updateZoomDisplay() {
+        const display = document.getElementById('zoom-level-display');
+        const zoomOutBtn = document.getElementById('zoom-out-btn');
+        const zoomInBtn = document.getElementById('zoom-in-btn');
+        
+        console.log('به‌روزرسانی نمایش زوم:', state.zoomLevel + '%');
+        
+        if (display) {
+            display.textContent = `${state.zoomLevel}%`;
+        }
+        
+        if (zoomOutBtn) {
+            zoomOutBtn.classList.toggle('disabled', state.zoomLevel <= 75);
+        }
+        if (zoomInBtn) {
+            zoomInBtn.classList.toggle('disabled', state.zoomLevel >= 125);
+        }
+    }
+
+static setupEventListeners() {
+    console.log('تنظیم رویدادهای زوم...');
+    
+    const zoomOutBtn = document.getElementById('zoom-out-btn');
+    const zoomInBtn = document.getElementById('zoom-in-btn');
+    
+    // حذف event listenerهای قبلی
+    if (this._zoomOutHandler) {
+        zoomOutBtn.removeEventListener('click', this._zoomOutHandler);
+    }
+    if (this._zoomInHandler) {
+        zoomInBtn.removeEventListener('click', this._zoomInHandler);
+    }
+    
+    // تعریف handlerها
+    this._zoomOutHandler = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        
+        console.log('کلیک روی دکمه -');
+        console.log('state.zoomLevel قبل:', state.zoomLevel);
+        
+        if (state.zoomLevel > 75) {
+            state.zoomLevel -= 1;
+            console.log('state.zoomLevel بعد:', state.zoomLevel);
+            
+            ZoomManager.applyZoom();
+            ZoomManager.saveZoom();
+            ZoomManager.updateZoomDisplay();
+            
+            zoomOutBtn.style.transform = 'scale(0.9)';
+            setTimeout(() => {
+                zoomOutBtn.style.transform = '';
+            }, 200);
+        }
+    };
+    
+    this._zoomInHandler = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        
+        console.log('کلیک روی دکمه +');
+        console.log('state.zoomLevel قبل:', state.zoomLevel);
+        
+        if (state.zoomLevel < 125) {
+            state.zoomLevel += 1;
+            console.log('state.zoomLevel بعد:', state.zoomLevel);
+            
+            ZoomManager.applyZoom();
+            ZoomManager.saveZoom();
+            ZoomManager.updateZoomDisplay();
+            
+            zoomInBtn.style.transform = 'scale(0.9)';
+            setTimeout(() => {
+                zoomInBtn.style.transform = '';
+            }, 200);
+        }
+    };
+    
+    // اضافه کردن event listenerها
+    zoomOutBtn.addEventListener('click', this._zoomOutHandler);
+    zoomInBtn.addEventListener('click', this._zoomInHandler);
+    
+    console.log('رویدادها با موفقیت تنظیم شدند');
+}
+
+
+}
+
+
+// ==================== مدیریت لایه بلور پس‌زمینه ====================
+class OverlayManager {
+    static loadBlur() {
+        const savedBlur = StorageManager.get('netcofe_background_blur');
+        if (savedBlur !== null && savedBlur >= 0 && savedBlur <= 10) {
+            state.backgroundBlur = savedBlur;
+        } else {
+            state.backgroundBlur = 0; // مقدار پیش‌فرض
+        }
+        this.applyBlur();
+    }
+
+static applyBlur() {
+    const overlayElement = document.getElementById('background-overlay');
+    if (overlayElement) {
+        let blurValue = state.backgroundBlur;
+        
+        // فرمول غیرخطی برای بلور ملایم‌تر
+        // وقتی مقدار 10 باشد، بلور واقعی 15px شود
+        const actualBlur = blurValue * 1.5; // یا blurValue * blurValue / 10 برای منحنی
+        
+        overlayElement.style.backdropFilter = `blur(${actualBlur}px)`;
+        overlayElement.style.webkitBackdropFilter = `blur(${actualBlur}px)`;
+        
+        // تنظیم opacity متناسب با بلور
+        const opacity = Math.min(blurValue / 15, 0.1);
+        overlayElement.style.backgroundColor = `rgba(255, 255, 255, ${opacity})`;
+        
+        console.log('بلور اعمال شد:', {
+            مقدار_ورودی: blurValue.toFixed(1) + 'px',
+            مقدار_واقعی: actualBlur.toFixed(1) + 'px',
+            opacity: opacity.toFixed(3)
+        });
+    }
+}
+
+
+    static saveBlur() {
+        StorageManager.set('netcofe_background_blur', state.backgroundBlur);
+    }
+
+    static increaseBlur() {
+        if (state.backgroundBlur < 10) {
+            state.backgroundBlur = Math.min(10, state.backgroundBlur + 0.1);
+            state.backgroundBlur = Math.round(state.backgroundBlur * 10) / 10; // گرد کردن به یک رقم اعشار
+            this.applyBlur();
+            this.saveBlur();
+        }
+    }
+
+    static decreaseBlur() {
+        if (state.backgroundBlur > 0) {
+            state.backgroundBlur = Math.max(0, state.backgroundBlur - 0.1);
+            state.backgroundBlur = Math.round(state.backgroundBlur * 10) / 10; // گرد کردن به یک رقم اعشار
+            this.applyBlur();
+            this.saveBlur();
+        }
+    }
+
+    static setupEventListeners() {
+        const blurBtn = document.getElementById('overlay-blur-btn');
+        if (blurBtn) {
+            blurBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // نمایش منوی کنترل بلور
+                this.showBlurControlMenu(e);
+            });
+        }
+    }
+
+    static showBlurControlMenu(event) {
+        // حذف منوی قبلی اگر وجود داره
+        const existingMenu = document.getElementById('blur-control-menu');
+        if (existingMenu) {
+            existingMenu.remove();
+            return;
+        }
+
+        // ایجاد منوی کنترل بلور
+        const menu = document.createElement('div');
+        menu.id = 'blur-control-menu';
+        menu.className = 'blur-control-menu';
+        
+        // نمایش درصد (0-100) اما ذخیره 0-10
+        const displayValue = Math.round(state.backgroundBlur * 10); // تبدیل به 0-100
+        
+        menu.innerHTML = `
+            <div class="blur-menu-header">
+                <span>میزان بلور پس‌زمینه</span>
+                <button class="close-blur-menu">×</button>
+            </div>
+            <div class="blur-preview">
+                <div class="blur-preview-box" id="blur-preview-box"></div>
+                <div class="blur-description">
+                    <small>مقدار واقعی: ${state.backgroundBlur.toFixed(1)}px</small>
+                </div>
+            </div>
+            <div class="blur-slider-container">
+                <input type="range" id="blur-intensity-slider" 
+                       min="0" max="100" step="1" 
+                       value="${displayValue}">
+                <div class="blur-value-display">
+                    <span id="blur-intensity-value">${displayValue}%</span>
+                </div>
+            </div>
+            <div class="blur-scale">
+                <span>0%</span>
+                <span>50%</span>
+                <span>100%</span>
+            </div>
+            <div class="blur-presets">
+                <button class="blur-preset" data-value="0">بدون بلور </button>
+                <button class="blur-preset" data-value="4">ملایم </button>
+                <button class="blur-preset" data-value="10">متوسط </button>
+                <button class="blur-preset" data-value="20">زیاد </button>
+                <button class="blur-preset" data-value="40">شدید </button>
+                <button class="blur-preset" data-value="100">کامل </button>
+            </div>
+            <div class="blur-buttons">
+                <button id="blur-decrease-btn" class="blur-small-btn" title="کاهش 0.1px">−</button>
+                <button id="blur-increase-btn" class="blur-small-btn" title="افزایش 0.1px">+</button>
+                <button id="blur-reset-btn" class="blur-reset-btn">بازنشانی</button>
+            </div>
+        `;
+
+        document.body.appendChild(menu);
+
+        // موقعیت‌دهی منو
+        const btnRect = event.target.getBoundingClientRect();
+        menu.style.position = 'fixed';
+        menu.style.top = `${Math.max(10, btnRect.top - menu.offsetHeight - 10)}px`;
+        menu.style.right = `${window.innerWidth - btnRect.right}px`;
+
+        // به‌روزرسانی پیش‌نمایش
+        this.updateBlurPreview();
+        
+        // رویدادهای منو
+        this.setupBlurMenuEvents();
+    }
+
+    static updateBlurPreview() {
+        const previewBox = document.getElementById('blur-preview-box');
+        if (previewBox) {
+            previewBox.style.backdropFilter = `blur(${state.backgroundBlur}px)`;
+            previewBox.style.webkitBackdropFilter = `blur(${state.backgroundBlur}px)`;
+        }
+    }
+
+    static setupBlurMenuEvents() {
+        const slider = document.getElementById('blur-intensity-slider');
+        const valueDisplay = document.getElementById('blur-intensity-value');
+        const decreaseBtn = document.getElementById('blur-decrease-btn');
+        const increaseBtn = document.getElementById('blur-increase-btn');
+        const resetBtn = document.getElementById('blur-reset-btn');
+        const presetButtons = document.querySelectorAll('.blur-preset');
+        const closeBtn = document.querySelector('.close-blur-menu');
+        const menu = document.getElementById('blur-control-menu');
+
+        if (slider) {
+            slider.addEventListener('input', (e) => {
+                const displayValue = parseInt(e.target.value); // 0-100
+                state.backgroundBlur = displayValue / 10; // تبدیل به 0-10
+                valueDisplay.textContent = `${displayValue}%`;
+                this.applyBlur();
+                this.updateBlurPreview();
+                
+                // به‌روزرسانی توضیح
+                const description = document.querySelector('.blur-description small');
+                if (description) {
+                    description.textContent = `مقدار واقعی: ${state.backgroundBlur.toFixed(1)}px`;
+                }
+            });
+
+            slider.addEventListener('change', () => {
+                this.saveBlur();
+            });
+        }
+
+        if (decreaseBtn) {
+            decreaseBtn.addEventListener('click', () => {
+                this.decreaseBlur();
+                const displayValue = Math.round(state.backgroundBlur * 10);
+                if (slider && valueDisplay) {
+                    slider.value = displayValue;
+                    valueDisplay.textContent = `${displayValue}%`;
+                    this.updateBlurPreview();
+                    
+                    // به‌روزرسانی توضیح
+                    const description = document.querySelector('.blur-description small');
+                    if (description) {
+                        description.textContent = `مقدار واقعی: ${state.backgroundBlur.toFixed(1)}px`;
+                    }
+                }
+            });
+        }
+
+        if (increaseBtn) {
+            increaseBtn.addEventListener('click', () => {
+                this.increaseBlur();
+                const displayValue = Math.round(state.backgroundBlur * 10);
+                if (slider && valueDisplay) {
+                    slider.value = displayValue;
+                    valueDisplay.textContent = `${displayValue}%`;
+                    this.updateBlurPreview();
+                    
+                    // به‌روزرسانی توضیح
+                    const description = document.querySelector('.blur-description small');
+                    if (description) {
+                        description.textContent = `مقدار واقعی: ${state.backgroundBlur.toFixed(1)}px`;
+                    }
+                }
+            });
+        }
+
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                state.backgroundBlur = 0;
+                this.applyBlur();
+                this.saveBlur();
+                if (slider && valueDisplay) {
+                    slider.value = 0;
+                    valueDisplay.textContent = '0%';
+                    this.updateBlurPreview();
+                    
+                    // به‌روزرسانی توضیح
+                    const description = document.querySelector('.blur-description small');
+                    if (description) {
+                        description.textContent = `مقدار واقعی: ${state.backgroundBlur.toFixed(1)}px`;
+                    }
+                }
+            });
+        }
+
+        // presetها
+        presetButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const displayValue = parseInt(btn.dataset.value); // 0-100
+                state.backgroundBlur = displayValue / 10; // تبدیل به 0-10
+                this.applyBlur();
+                this.saveBlur();
+                if (slider && valueDisplay) {
+                    slider.value = displayValue;
+                    valueDisplay.textContent = `${displayValue}%`;
+                    this.updateBlurPreview();
+                    
+                    // به‌روزرسانی توضیح
+                    const description = document.querySelector('.blur-description small');
+                    if (description) {
+                        description.textContent = `مقدار واقعی: ${state.backgroundBlur.toFixed(1)}px`;
+                    }
+                }
+            });
+        });
+
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                menu.remove();
+            });
+        }
+
+        // بستن منو با کلیک بیرون
+        document.addEventListener('click', (e) => {
+            if (menu && !menu.contains(e.target) && 
+                !e.target.closest('#overlay-blur-btn')) {
+                menu.remove();
+            }
+        });
+
+        // بستن با Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && menu) {
+                menu.remove();
+            }
+        });
+    }
+}
+
+
+
+
 
 // ==================== سیستم آب و هوا ====================
-
 class WeatherManager {
     static userCoordinates = null;
     
@@ -546,6 +1006,9 @@ class ThemeManager {
     static applyTheme() {
         document.documentElement.setAttribute('data-theme', state.isDarkMode ? 'dark' : 'light');
         StorageManager.set(CONFIG.STORAGE_KEYS.THEME, state.isDarkMode ? 'dark' : 'light');
+		
+	    // اعمال مجدد opacity overlay
+		OverlayManager.loadBlur();	
     }
 
     static setupThemeListeners() {
@@ -569,36 +1032,58 @@ class ThemeManager {
 
 // ==================== مدیریت پس‌زمینه ====================
 class BackgroundManager {
-    static applySavedBackground() {
-        try {
-            const bgData = StorageManager.get(CONFIG.STORAGE_KEYS.BACKGROUND);
-            const body = document.body;
-            
-            body.style.backgroundRepeat = 'no-repeat';
-            body.style.backgroundPosition = 'center center';
-            body.style.backgroundSize = 'cover';
-            body.style.backgroundAttachment = 'fixed';
+    static initBackground() {
+        const bgData = StorageManager.get(CONFIG.STORAGE_KEYS.BACKGROUND);
+        const bgElement = document.getElementById('fixed-background');
+        const body = document.body;
+        
+        // حذف بک‌گراند از body
+        body.style.background = 'none';
+        body.style.backgroundColor = 'transparent';
+        
+        if (bgElement) {
+            // اعمال استایل‌های پایه
+            bgElement.style.backgroundRepeat = 'no-repeat';
+            bgElement.style.backgroundPosition = 'center center';
+            bgElement.style.backgroundSize = 'cover';
+            bgElement.style.backgroundAttachment = 'fixed';
             
             if (bgData) {
-                body.style.backgroundImage = `url(${bgData})`;
+                bgElement.style.backgroundImage = `url(${bgData})`;
+                console.log('بک‌گراند اعمال شد از localStorage');
             } else {
-                body.style.backgroundImage = `url(${CONFIG.DEFAULT_BG_IMAGE_PATH})`;
+                bgElement.style.backgroundImage = `url(${CONFIG.DEFAULT_BG_IMAGE_PATH})`;
+                console.log('بک‌گراند پیش‌فرض اعمال شد');
             }
-        } catch (error) {
-            console.error('خطا در اعمال پس‌زمینه:', error);
+        } else {
+            console.warn('عنصر fixed-background پیدا نشد!');
         }
     }
 
     static setBackground(imageData) {
         StorageManager.set(CONFIG.STORAGE_KEYS.BACKGROUND, imageData);
-        document.body.style.backgroundImage = `url(${imageData})`;
+        
+        const bgElement = document.getElementById('fixed-background');
+        if (bgElement) {
+            bgElement.style.backgroundImage = `url(${imageData})`;
+        } else {
+            // اگر المان وجود نداره، ایجادش کن
+            this.initBackground();
+        }
     }
 
     static resetBackground() {
         StorageManager.remove(CONFIG.STORAGE_KEYS.BACKGROUND);
-        document.body.style.backgroundImage = `url(${CONFIG.DEFAULT_BG_IMAGE_PATH})`;
+        
+        const bgElement = document.getElementById('fixed-background');
+        if (bgElement) {
+            bgElement.style.backgroundImage = `url(${CONFIG.DEFAULT_BG_IMAGE_PATH})`;
+        } else {
+            this.initBackground();
+        }
     }
 }
+
 
 // ==================== Drag & Resize System ====================
 class DragResizeManager {
@@ -2874,29 +3359,32 @@ class EventManager {
     static setup() {
         console.log('تنظیم رویدادها...');
         
-        // دکمه حالت ویرایش
-        const editModeBtn = document.getElementById('edit-mode-btn');
-        if (editModeBtn) {
-            editModeBtn.addEventListener('click', () => {
-                state.isEditMode = !state.isEditMode;
-                const subControls = document.getElementById('sub-controls');
-                
-                editModeBtn.textContent = state.isEditMode ? '✅' : '✏️';
-                editModeBtn.title = state.isEditMode ? 'خروج از حالت ویرایش' : 'حالت ویرایش';
-                
-                if (subControls) {
-                    if (state.isEditMode) {
-                        subControls.classList.remove('hidden-controls');
-                        subControls.classList.add('visible-controls');
-                    } else {
-                        subControls.classList.remove('visible-controls');
-                        subControls.classList.add('hidden-controls');
-                    }
-                }
-                
-                Renderer.renderDashboard();
-            });
-        }
+   		// دکمه حالت ویرایش
+		const editModeBtn = document.getElementById('edit-mode-btn');
+		if (editModeBtn) {
+			editModeBtn.addEventListener('click', (e) => {
+				e.preventDefault(); // این خط رو اضافه کن
+				e.stopPropagation(); // این هم خوبه اضافه بشه
+				
+				state.isEditMode = !state.isEditMode;
+				const subControls = document.getElementById('sub-controls');
+				
+				editModeBtn.textContent = state.isEditMode ? '✅' : '✏️';
+				editModeBtn.title = state.isEditMode ? 'خروج از حالت ویرایش' : 'حالت ویرایش';
+				
+				if (subControls) {
+					if (state.isEditMode) {
+						subControls.classList.remove('hidden-controls');
+						subControls.classList.add('visible-controls');
+					} else {
+						subControls.classList.remove('visible-controls');
+						subControls.classList.add('hidden-controls');
+					}
+				}
+				
+				Renderer.renderDashboard();
+			});
+		}
         
         // دکمه به‌روزرسانی بوکمارک‌ها
         const refreshBtn = document.getElementById('refresh-bookmarks-btn');
@@ -2919,14 +3407,14 @@ class EventManager {
         }
 		
 		// دکمه تغییر شهر (در منوی کنترل‌ها)
-const globalCityChangeBtn = document.getElementById('global-city-change-btn');
-if (globalCityChangeBtn) {
-    globalCityChangeBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        Renderer.openCitySelectorModal();
-    });
-}
+		const globalCityChangeBtn = document.getElementById('global-city-change-btn');
+		if (globalCityChangeBtn) {
+			globalCityChangeBtn.addEventListener('click', (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				Renderer.openCitySelectorModal();
+			});
+		}
         
         // دکمه تغییر تم
         const themeBtn = document.getElementById('toggle-theme-btn');
@@ -2950,8 +3438,7 @@ if (globalCityChangeBtn) {
             });
         }
         
-// در کلاس EventManager - بخش جستجو:
-// در EventManager.setup() - بخش جستجو:
+		// در کلاس EventManager - بخش جستجو:
 const searchInput = document.getElementById('bookmark-search');
 if (searchInput) {
     let searchTimeout;
@@ -3237,6 +3724,15 @@ if (closeSearchBtn) {
                 }
             });
         }
+		
+		// کنترل‌های زوم
+		if (!window._zoomListenersSetup) {
+		ZoomManager.setupEventListeners();
+		window._zoomListenersSetup = true;
+		
+		OverlayManager.setupEventListeners();
+}
+
     }
     
     static loadSettingsForm() {
@@ -3279,20 +3775,31 @@ if (closeSearchBtn) {
 // ==================== Initialize Application ====================
 
 
+
 class App {
     static async init() {
         try {
             console.log('راه‌اندازی برنامه...');
             
             ThemeManager.init();
-            BackgroundManager.applySavedBackground();
+            BackgroundManager.initBackground();
             
             state.layoutMap = StorageManager.get(CONFIG.STORAGE_KEYS.LAYOUT) || {};
             state.currentPaths = StorageManager.get(CONFIG.STORAGE_KEYS.CURRENT_PATHS) || {};
             
+            // فقط این خطوط رو نگه دار
+            ZoomManager.loadZoom();
+			// بارگذاری و اعمال opacity لایه محو
+			OverlayManager.loadBlur();
+            
             await BookmarkManager.loadBookmarks();
             EventManager.setup();
-
+			
+            setTimeout(() => {
+                ZoomManager.applyZoom();
+                ZoomManager.updateZoomDisplay();
+            }, 200);
+			
             // --- بخش اعمال تنظیمات خودکار از سرور ---
             const settingsApplied = StorageManager.get('netcofe_settings_applied');
             if (!settingsApplied) {
@@ -3374,6 +3881,8 @@ class App {
             }
         }
     }
+    
+
 
     // تابع تشخیص دستگاه موبایل
     static isMobileDevice() {
@@ -3427,6 +3936,44 @@ class App {
         console.log('✅ تنظیمات پیش‌فرض موبایل اعمال شد.');
     }
 }
+
+
+// ==================== راه‌اندازی برنامه ====================
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM آماده است.');
+    App.init();
+    
+    // نمایش وضعیت آنلاین/آفلاین
+    const updateOnlineStatus = () => {
+        const indicator = document.getElementById('offline-indicator');
+        if (indicator) {
+            indicator.classList.toggle('hidden', navigator.onLine);
+        }
+    };
+    
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+    updateOnlineStatus();
+});
+
+// ==================== راه‌اندازی برنامه ====================
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM آماده است.');
+    App.init();
+    
+    // نمایش وضعیت آنلاین/آفلاین
+    const updateOnlineStatus = () => {
+        const indicator = document.getElementById('offline-indicator');
+        if (indicator) {
+            indicator.classList.toggle('hidden', navigator.onLine);
+        }
+    };
+    
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+    updateOnlineStatus();
+});
+
 
 
 // ==================== راه‌اندازی برنامه ====================

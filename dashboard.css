@@ -1376,3 +1376,677 @@ html, body {
         -webkit-overflow-scrolling: touch !important;
     }
 }
+
+
+
+
+
+
+
+
+
+
+/* ==================== کنترل‌های زوم ==================== */
+.zoom-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid #e0e0e0;
+    border-radius: 20px;
+    padding: 0 12px;
+    margin: 0 8px;
+    height: 44px;
+    min-width: 120px;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.zoom-controls.visible-on-edit {
+    opacity: 1;
+    visibility: visible;
+}
+
+.zoom-btn {
+    background: none;
+    border: none;
+    color: #333;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0 10px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.zoom-btn:hover {
+    color: #3b82f6;
+    transform: scale(1.2);
+}
+
+.zoom-btn:active {
+    transform: scale(0.95);
+}
+
+#zoom-level-display {
+    font-family: 'Vazirmatn', Tahoma, sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    min-width: 45px;
+    text-align: center;
+    user-select: none;
+}
+
+/* حالت تاریک */
+[data-theme="dark"] .zoom-controls {
+    background: rgba(0, 0, 0, 0.9);
+    border-color: #444444;
+}
+
+[data-theme="dark"] .zoom-btn {
+    color: #ffffff;
+}
+
+[data-theme="dark"] #zoom-level-display {
+    color: #ffffff;
+}
+
+/* برای موبایل */
+@media (max-width: 768px) {
+    .zoom-controls {
+        margin: 0 5px;
+        padding: 0 10px;
+        height: 40px;
+        min-width: 110px;
+    }
+    
+    .zoom-btn {
+        padding: 0 8px;
+        font-size: 16px;
+    }
+    
+    #zoom-level-display {
+        font-size: 13px;
+        min-width: 40px;
+    }
+}
+
+/* برای موبایل‌های خیلی کوچک */
+@media (max-width: 480px) {
+    .zoom-controls {
+        margin: 0 3px;
+        padding: 0 8px;
+        height: 38px;
+        min-width: 100px;
+    }
+    
+    .zoom-btn {
+        padding: 0 6px;
+        font-size: 15px;
+    }
+    
+    #zoom-level-display {
+        font-size: 12px;
+        min-width: 35px;
+    }
+}
+
+/* حالت غیرفعال برای دکمه‌ها */
+.zoom-btn.disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+
+/* تضمین اعمال transform */
+#grid-container {
+    transform-box: fill-box !important;
+    will-change: transform !important;
+    backface-visibility: hidden !important;
+}
+
+/* جلوگیری از override شدن transform */
+#grid-container[style*="transform"] {
+    transform: var(--zoom-transform, scale(1)) !important;
+}
+
+
+/* ==================== بک‌گراند ثابت ==================== */
+#fixed-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -9999;
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: cover;
+    background-attachment: fixed;
+    pointer-events: none; /* اجازه کلیک ازش رد بشه */
+}
+
+/* مطمئن شو body بک‌گراند نداشته باشه */
+body {
+    background: none !important;
+    position: relative;
+}
+
+/* مطمئن شو محتوا روی بک‌گراند قرار بگیره */
+#grid-container, 
+#control-menu,
+.modal-overlay {
+    position: relative;
+    z-index: 1;
+}
+
+
+/* جلوگیری از تأثیر زوم روی بک‌گراند */
+#fixed-background {
+    transform: none !important;
+    zoom: 100% !important;
+    scale: 1 !important;
+}
+
+#grid-container {
+    background: transparent; /* یا rgba(255, 255, 255, 0.01) برای شفافیت خیلی کم */
+    border-radius: 8px;
+    margin: 10px auto;
+    padding: 5px;
+    box-sizing: border-box;
+}
+
+[data-theme="dark"] #grid-container {
+    background: transparent; /* یا rgba(0, 0, 0, 0.01) */
+}
+
+/* ==================== Wrapper زوم ==================== */
+#zoom-wrapper {
+    position: relative;
+    width: 100%;
+    min-height: calc(100vh - 100px);
+    transition: transform 0.2s ease;
+    transform-origin: center top;
+    margin: 0 auto;
+    overflow: visible;
+}
+
+/* تضمین اینکه کنترل‌منو تحت تأثیر زوم قرار نگیره */
+#control-menu {
+    position: fixed !important;
+    bottom: 20px !important;
+    right: 20px !important;
+    z-index: 99999 !important;
+    transform: none !important;
+    zoom: 100% !important;
+    scale: 1 !important;
+}
+
+/* همچنین sub-controls هم باید ثابت بمونن */
+#sub-controls {
+    transform: none !important;
+    zoom: 100% !important;
+    scale: 1 !important;
+}
+
+/* برای حالت‌های مختلف زوم، wrapper رو تنظیم کن */
+#zoom-wrapper.zoomed {
+    padding-top: 20px;
+    padding-bottom: 20px;
+}
+
+
+/* ==================== لایه بلور روی بک‌گراند ==================== */
+#background-overlay {
+    position: fixed;
+    top: -50vh; /* بلور از بالا تا بینهایت */
+    left: -50vw; /* بلور از چپ تا بینهایت */
+    right: -50vw; /* بلور از راست تا بینهایت */
+    bottom: -50vh; /* بلور از پایین تا بینهایت */
+    z-index: -9998;
+    backdrop-filter: blur(0px); /* مقدار پیش‌فرض */
+    -webkit-backdrop-filter: blur(0px); /* برای Safari */
+    background: transparent;
+    transition: backdrop-filter 0.5s ease, -webkit-backdrop-filter 0.5s ease;
+    pointer-events: none;
+}
+
+/* برای مرورگرهایی که backdrop-filter رو پشتیبانی نمی‌کنن */
+@supports not (backdrop-filter: blur(0px)) {
+    #background-overlay {
+        background: rgba(255, 255, 255, 0.05);
+        filter: blur(0px);
+        transition: filter 0.5s ease, background 0.5s ease;
+    }
+    
+    [data-theme="dark"] #background-overlay {
+        background: rgba(0, 0, 0, 0.05);
+    }
+}
+
+/* مطمئن شو که لایه بلور تحت تأثیر زوم قرار نگیره */
+#background-overlay {
+    transform: none !important;
+    zoom: 100% !important;
+    scale: 1 !important;
+}
+
+/* این برای دکمه‌های کنترل overlay هست */
+.overlay-opacity-btn {
+    font-size: 18px;
+    transition: all 0.3s ease;
+}
+
+.overlay-opacity-btn:hover {
+    transform: scale(1.1);
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+/* ==================== منوی کنترل overlay ==================== */
+.overlay-control-menu {
+    position: absolute;
+    background: white;
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+    z-index: 100000;
+    min-width: 200px;
+    direction: rtl;
+}
+
+[data-theme="dark"] .overlay-control-menu {
+    background: #2d3748;
+    color: #e2e8f0;
+}
+
+.overlay-menu-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+[data-theme="dark"] .overlay-menu-header {
+    border-bottom-color: #4a5568;
+}
+
+.overlay-menu-header span {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.close-overlay-menu {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #6b7280;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.close-overlay-menu:hover {
+    background: #f3f4f6;
+}
+
+[data-theme="dark"] .close-overlay-menu:hover {
+    background: #4a5568;
+}
+
+.overlay-slider-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+#overlay-opacity-slider {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: #e5e7eb;
+    outline: none;
+    -webkit-appearance: none;
+}
+
+[data-theme="dark"] #overlay-opacity-slider {
+    background: #4a5568;
+}
+
+#overlay-opacity-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #3b82f6;
+    cursor: pointer;
+}
+
+#overlay-opacity-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #3b82f6;
+    cursor: pointer;
+    border: none;
+}
+
+#overlay-opacity-value {
+    font-size: 12px;
+    font-weight: 600;
+    min-width: 40px;
+    text-align: center;
+}
+
+.overlay-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: space-between;
+}
+
+.overlay-small-btn {
+    flex: 1;
+    background: #f3f4f6;
+    border: none;
+    border-radius: 6px;
+    padding: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+.overlay-small-btn:hover {
+    background: #e5e7eb;
+}
+
+[data-theme="dark"] .overlay-small-btn {
+    background: #4a5568;
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .overlay-small-btn:hover {
+    background: #2d3748;
+}
+
+.overlay-reset-btn {
+    flex: 2;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.overlay-reset-btn:hover {
+    background: #2563eb;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* ==================== منوی کنترل بلور ==================== */
+.blur-control-menu {
+    position: absolute;
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    z-index: 100000;
+    min-width: 320px;
+    max-width: 400px;
+    direction: rtl;
+}
+
+[data-theme="dark"] .blur-control-menu {
+    background: #2d3748;
+    color: #e2e8f0;
+}
+
+.blur-menu-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+[data-theme="dark"] .blur-menu-header {
+    border-bottom-color: #4a5568;
+}
+
+.blur-menu-header span {
+    font-weight: 600;
+    font-size: 16px;
+}
+
+/* پیش‌نمایش بلور */
+.blur-preview {
+    margin: 15px 0;
+    padding: 15px;
+    background: linear-gradient(45deg, #3b82f6, #8b5cf6, #ec4899);
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+}
+
+.blur-preview-box {
+    width: 100%;
+    height: 100px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: white;
+    font-weight: 600;
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+    transition: backdrop-filter 0.5s;
+}
+
+.blur-description {
+    text-align: center;
+    margin-top: 8px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* اسلایدر بلور */
+.blur-slider-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin: 20px 0;
+    position: relative;
+}
+
+#blur-intensity-slider {
+    flex: 1;
+    height: 10px;
+    border-radius: 5px;
+    background: linear-gradient(to right, 
+        #3b82f6 0%, 
+        #8b5cf6 25%, 
+        #ec4899 50%, 
+        #f59e0b 75%, 
+        #ef4444 100%);
+    outline: none;
+    -webkit-appearance: none;
+}
+
+#blur-intensity-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: white;
+    border: 3px solid #3b82f6;
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+}
+
+#blur-intensity-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+}
+
+#blur-intensity-slider::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: white;
+    border: 3px solid #3b82f6;
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.blur-value-display {
+    min-width: 60px;
+    text-align: center;
+}
+
+#blur-intensity-value {
+    font-size: 18px;
+    font-weight: 700;
+    background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+[data-theme="dark"] #blur-intensity-value {
+    background: linear-gradient(45deg, #60a5fa, #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* مقیاس زیر اسلایدر */
+.blur-scale {
+    display: flex;
+    justify-content: space-between;
+    margin: 5px 0 20px;
+    font-size: 12px;
+    color: #6b7280;
+    padding: 0 5px;
+}
+
+[data-theme="dark"] .blur-scale {
+    color: #9ca3af;
+}
+
+/* presetها */
+.blur-presets {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.blur-preset {
+    padding: 10px 8px;
+    background: #f3f4f6;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    transition: all 0.2s;
+    text-align: center;
+    line-height: 1.3;
+}
+
+.blur-preset:hover {
+    background: #e5e7eb;
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .blur-preset {
+    background: #4b5563;
+    color: #e5e7eb;
+}
+
+[data-theme="dark"] .blur-preset:hover {
+    background: #374151;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* دکمه‌های کنترل */
+.blur-buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.blur-small-btn {
+    flex: 1;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 12px;
+    cursor: pointer;
+    font-size: 20px;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+.blur-small-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
+.blur-reset-btn {
+    flex: 2;
+    background: linear-gradient(135deg, #6b7280, #4b5563);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 12px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.blur-reset-btn:hover {
+    background: linear-gradient(135deg, #4b5563, #374151);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+}

@@ -39,6 +39,12 @@
 </head>
 <body>
     
+	<!-- بک‌گراند ثابت -->
+    <div id="fixed-background"></div>
+	<!-- لایه محو روی بک‌گراند -->
+	<div id="background-overlay"></div>
+
+	
     <!-- آفلاین ایندیکیتور -->
     <div id="offline-indicator" class="offline-indicator hidden">
         🔌 حالت آفلاین
@@ -51,40 +57,52 @@
     </div>
     
 	
-    <!-- کانتینر اصلی -->
-    <main id="grid-container">
-        <!-- محتوای بوکمارک‌ها اینجا نمایش داده می‌شود -->
-    </main>
+    <!-- Wrapper برای زوم -->
+    <div id="zoom-wrapper">
+        <!-- کانتینر اصلی -->
+        <main id="grid-container">
+            <!-- محتوای بوکمارک‌ها اینجا نمایش داده می‌شود -->
+        </main>
+    </div>
 
     <!-- منوی کنترل -->
     <div id="control-menu">
-<div id="sub-controls" class="hidden-controls">
+		<div id="sub-controls" class="hidden-controls">
 
-		<!-- مستطیل متن دلخواه -->
-	<div class="text-container visible-on-edit" id="custom-text-box">
-		📱TELEGRAM: @ALI73JN
-	</div>
-	
+				<!-- مستطیل متن دلخواه -->
+			<div class="text-container visible-on-edit" id="custom-text-box">
+				📱TELEGRAM: @ALI73JN
+			</div>
+			
 
 
-	<!-- کانتر بازدید (فقط در حالت ویرایش نمایش داده می‌شود) -->
-	<div class="counter-container visible-on-edit">
-		<a href="https://ali73jn.github.io/netcofe/" target="_blank" title="آمار بازدید سایت">
-			<img src="https://hitscounter.dev/api/hit?url=https%3A%2F%2Fali73jn.github.io%2Fnetcofe%2F&label=&icon=file-bar-graph&color=%23fff&message=&style=flat-square&tz=UTC" 
-				 alt="Hits Counter" 
-				 border="0">
-		</a>
-	</div>
+			<!-- کانتر بازدید (فقط در حالت ویرایش نمایش داده می‌شود) -->
+			<div class="counter-container visible-on-edit">
+				<a href="https://ali73jn.github.io/netcofe/" target="_blank" title="آمار بازدید سایت">
+					<img src="https://hitscounter.dev/api/hit?url=https%3A%2F%2Fali73jn.github.io%2Fnetcofe%2F&label=&icon=file-bar-graph&color=%23fff&message=&style=flat-square&tz=UTC" 
+						 alt="Hits Counter" 
+						 border="0">
+				</a>
+			</div>
+			
+            <!-- کنترل‌های زوم (فقط در حالت ویرایش) -->
+            <div class="zoom-controls visible-on-edit">
+                <button id="zoom-out-btn" class="zoom-btn" title="کوچک‌نمایی (75-125%)"> - </button>
+                <span id="zoom-level-display">100%</span>
+                <button id="zoom-in-btn" class="zoom-btn" title="بزرگ‌نمایی (75-125%)"> + </button>
+            </div>
+			<!-- دکمه کنترل محو بودن پس‌زمینه -->
+			<button id="overlay-blur-btn" class="sub-btn visible-on-edit" title="کنترل بلور پس‌زمینه">🌫️</button>
+			
+			<button id="refresh-bookmarks-btn" class="sub-btn" title="به‌روزرسانی بوکمارک‌ها">🔄</button>
+			<button id="global-city-change-btn" class="sub-btn visible-on-edit" title="تغییر شهر">🌍</button>
+			<button id="set-background-btn" class="sub-btn" title="انتخاب پس زمینه">🖼️</button>
+			<button id="toggle-theme-btn" class="sub-btn" title="تغییر حالت تاریک/روشن">🌓</button>
+			<button id="export-settings-btn" class="sub-btn" title="خروجی تنظیمات">⚙️📤</button>
+			<button id="import-settings-btn" class="sub-btn" title="ورود تنظیمات">⚙️📥</button>
 	
-	
-	<button id="refresh-bookmarks-btn" class="sub-btn" title="به‌روزرسانی بوکمارک‌ها">🔄</button>
-    <button id="global-city-change-btn" class="sub-btn visible-on-edit" title="تغییر شهر">🌍</button>
-    <button id="set-background-btn" class="sub-btn" title="انتخاب پس زمینه">🖼️</button>
-    <button id="toggle-theme-btn" class="sub-btn" title="تغییر حالت تاریک/روشن">🌓</button>
-    <button id="export-settings-btn" class="sub-btn" title="خروجی تنظیمات">⚙️📤</button>
-    <button id="import-settings-btn" class="sub-btn" title="ورود تنظیمات">⚙️📥</button>
-	
-	</div>
+		</div>
+		
 		<button id="search-btn" class="main-btn" title="جستجو">🔍</button>
         <button id="edit-mode-btn" class="main-btn" title="حالت ویرایش">✏️</button>
     </div>
@@ -161,18 +179,17 @@
     </script>
 	
 	
-<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+	<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
 
 
 
-<!-- Default gnrcounter.com code for https://ali73jn.github.io/netcofe/ -->
-<script language="JavaScript" type="text/javascript" src="https://gnrcounter.com/counter.php?accId=e078336674fb96e626fbe6e37ffc0f0d"></script>
-<noscript>
-<a href="https://gnrcounter.com" title="Web Analytics">Web Analytics</a>
-</noscript>
-<!-- End of gnrcounter.com Code -->  
-  
-
+	<!-- Default gnrcounter.com code for https://ali73jn.github.io/netcofe/ -->
+	<script language="JavaScript" type="text/javascript" src="https://gnrcounter.com/counter.php?accId=e078336674fb96e626fbe6e37ffc0f0d"></script>
+	<noscript>
+	<a href="https://gnrcounter.com" title="Web Analytics">Web Analytics</a>
+	</noscript>
+	<!-- End of gnrcounter.com Code -->  
+	  
 
 </body>
 </html>
