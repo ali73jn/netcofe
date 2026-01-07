@@ -93,7 +93,7 @@ let state = {
     isDarkMode: false,
     isCompactMode: false,
 	backgroundBlur: 0.2,
-	zoomLevel: 100, // مقدار پیش‌فرض 100%
+	zoomLevel: 92, // مقدار پیش‌فرض 100%
     currentPaths: {}, // ذخیره مسیر فعلی برای هر دسته‌بندی
     dragInfo: null,
     resizeInfo: null,
@@ -422,14 +422,35 @@ class ZoomManager {
     static MAX_ZOOM = 125;  // حداکثر 200%
     static ZOOM_STEP = 1;   // گام 1%
 
-    static loadZoom() {
-        const savedZoom = StorageManager.get('netcofe_zoom_level');
-        if (savedZoom !== null && savedZoom >= this.MIN_ZOOM && savedZoom <= this.MAX_ZOOM) {
-            state.zoomLevel = savedZoom;
-        } else {
-            state.zoomLevel = 100; // مقدار پیش‌فرض
-        }
-    }
+	static loadZoom() {
+		const savedZoom = StorageManager.get('netcofe_zoom_level');
+		
+		// اگر کاربر قبلاً تنظیمی ذخیره کرده، از اون استفاده کن
+		if (savedZoom !== null && savedZoom >= 75 && savedZoom <= 125) {
+			state.zoomLevel = savedZoom;
+			console.log('زوم بارگذاری شد:', state.zoomLevel + '%');
+		} else {
+			// تشخیص دستگاه و تنظیم پیش‌فرض
+			const isMobile = this.isMobileDevice();
+			
+			if (isMobile) {
+				state.zoomLevel = 100; // پیش‌فرض موبایل
+				console.log('موبایل تشخیص داده شد، زوم پیش‌فرض 100%');
+			} else {
+				state.zoomLevel = 92; // پیش‌فرض دسکتاپ
+				console.log('دسکتاپ تشخیص داده شد، زوم پیش‌فرض 92%');
+			}
+			
+			// ذخیره پیش‌فرض
+			this.saveZoom();
+		}
+	}
+
+	// اضافه کردن تابع تشخیص موبایل در ZoomManager
+	static isMobileDevice() {
+		// استفاده از تابع موجود در App یا ایجاد یک نسخه ساده
+		return window.innerWidth <= 768 || 'ontouchstart' in window;
+	}
 
     static applyZoom() {
         const zoomPercent = state.zoomLevel;
