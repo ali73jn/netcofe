@@ -58,20 +58,28 @@
 
     <!-- منوی کنترل -->
     <div id="control-menu">
-        <div id="sub-controls" class="hidden-controls">
-            
-            <button id="refresh-bookmarks-btn" class="sub-btn" title="به‌روزرسانی بوکمارک‌ها">🔄</button>
-            
-            <button id="set-background-btn" class="sub-btn" title="انتخاب پس زمینه">🖼️</button>
-            <button id="toggle-theme-btn" class="sub-btn" title="تغییر حالت تاریک/روشن">🌓</button>
-            
-           <!-- <button id="export-bookmarks-btn" class="sub-btn" title="خروجی بوکمارک‌ها">🔖📤</button>
-            <button id="import-bookmarks-btn" class="sub-btn" title="ورود بوکمارک‌ها">🔖📥</button>           -->
-            
-            <button id="export-settings-btn" class="sub-btn" title="خروجی تنظیمات">⚙️📤</button>
-            <button id="import-settings-btn" class="sub-btn" title="ورود تنظیمات">⚙️📥</button>
-            
-        </div>
+<div id="sub-controls" class="hidden-controls">
+
+		<!-- مستطیل متن دلخواه -->
+	<div class="text-container visible-on-edit" id="custom-text-box">
+		TELEGRAM: @ALI73JN
+	</div>
+	
+    <!-- کانتر بازدید (فقط در حالت ویرایش نمایش داده می‌شود) -->
+    <div class="counter-container visible-on-edit">
+        <a href='https://www.counter12.com' target='_blank' title='آمار بازدید'>
+            <img src='https://www.counter12.com/img-z6WA09AdyydxBaD7-45.gif' border='0' alt='free counter'>
+        </a>
+    </div>
+
+	
+	
+	<button id="refresh-bookmarks-btn" class="sub-btn" title="به‌روزرسانی بوکمارک‌ها">🔄</button>
+    <button id="set-background-btn" class="sub-btn" title="انتخاب پس زمینه">🖼️</button>
+    <button id="toggle-theme-btn" class="sub-btn" title="تغییر حالت تاریک/روشن">🌓</button>
+    <button id="export-settings-btn" class="sub-btn" title="خروجی تنظیمات">⚙️📤</button>
+    <button id="import-settings-btn" class="sub-btn" title="ورود تنظیمات">⚙️📥</button>
+	</div>
  
 		<button id="search-btn" class="main-btn" title="جستجو">🔍</button>
         <button id="edit-mode-btn" class="main-btn" title="حالت ویرایش">✏️</button>
@@ -150,6 +158,9 @@
 	
 	
 <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
 
 </body>
 </html>
