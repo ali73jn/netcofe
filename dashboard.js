@@ -418,89 +418,62 @@ class FaviconManager {
 
 // ==================== مدیریت زوم ====================
 class ZoomManager {
+    static MIN_ZOOM = 75;   // حداقل 50%
+    static MAX_ZOOM = 125;  // حداکثر 200%
+    static ZOOM_STEP = 1;   // گام 1%
+
     static loadZoom() {
         const savedZoom = StorageManager.get('netcofe_zoom_level');
-        if (savedZoom !== null && savedZoom >= 75 && savedZoom <= 125) {
+        if (savedZoom !== null && savedZoom >= this.MIN_ZOOM && savedZoom <= this.MAX_ZOOM) {
             state.zoomLevel = savedZoom;
-            console.log('زوم بارگذاری شد:', state.zoomLevel + '%');
         } else {
-            state.zoomLevel = 100;
-            console.log('زوم پیش‌فرض:', state.zoomLevel + '%');
+            state.zoomLevel = 100; // مقدار پیش‌فرض
         }
     }
 
-
-static applyZoom() {
-    const zoomPercent = state.zoomLevel;
-    const zoomWrapper = document.getElementById('zoom-wrapper');
-    
-    console.log('اعمال زوم روی zoom-wrapper:', zoomPercent + '%');
-    
-    if (zoomWrapper) {
-        // اضافه/حذف کلاس zoomed
-        if (zoomPercent !== 100) {
-            zoomWrapper.classList.add('zoomed');
-        } else {
-            zoomWrapper.classList.remove('zoomed');
-        }
+    static applyZoom() {
+        const zoomPercent = state.zoomLevel;
+        const zoomWrapper = document.getElementById('zoom-wrapper');
         
-        // روش 1: استفاده از CSS zoom
-        zoomWrapper.style.zoom = `${zoomPercent}%`;
+        console.log('اعمال زوم:', zoomPercent + '%');
         
-        // روش 2: fallback برای مرورگرهایی که zoom رو پشتیبانی نمی‌کنن
-        if (zoomWrapper.style.zoom === undefined) {
-            const scale = zoomPercent / 100;
-            zoomWrapper.style.transform = `scale(${scale})`;
-            zoomWrapper.style.transformOrigin = 'center top';
+        if (zoomWrapper) {
+            // حذف کلاس‌های scale قبلی
+            zoomWrapper.className = zoomWrapper.className.replace(/\bscale-\d+\b/g, '');
             
-            // تنظیم width برای جلوگیری از جمع شدن
-            const originalWidth = zoomWrapper.scrollWidth;
-            const containerWidth = originalWidth * scale;
+            // اضافه کردن کلاس scale جدید
+            const scaleClass = `scale-${zoomPercent}`;
+            zoomWrapper.classList.add(scaleClass);
             
-            // اگر container از viewport بزرگتر شد، overflow رو فعال کن
-            if (containerWidth > window.innerWidth - 50) {
-                zoomWrapper.style.overflowX = 'auto';
-                zoomWrapper.style.width = `${containerWidth}px`;
-            } else {
-                zoomWrapper.style.overflowX = 'visible';
-                zoomWrapper.style.width = '100%';
+            // اعمال zoom
+            zoomWrapper.style.zoom = `${zoomPercent}%`;
+            
+            // fallback برای مرورگرهای قدیمی
+            if (zoomWrapper.style.zoom === undefined) {
+                const scale = zoomPercent / 100;
+                zoomWrapper.style.transform = `scale(${scale})`;
+                zoomWrapper.style.transformOrigin = 'top center';
             }
+            
+            // تنظیم margin
+            zoomWrapper.style.marginTop = '20px';
+            zoomWrapper.style.marginBottom = '20px';
+            
+            // برای مقادیر کم‌تر از 100%، وسط چین کن
+            if (zoomPercent < 100) {
+                const scale = zoomPercent / 100;
+                const scaledHeight = zoomWrapper.scrollHeight * scale;
+                const viewportHeight = window.innerHeight;
+                
+                if (scaledHeight < viewportHeight - 100) {
+                    const extraSpace = (viewportHeight - scaledHeight) / 2;
+                    zoomWrapper.style.marginTop = `${extraSpace}px`;
+                    zoomWrapper.style.marginBottom = `${extraSpace}px`;
+                }
+            }
+            
+            console.log('زوم اعمال شد:', zoomPercent + '%');
         }
-        
-        // کنترل‌منو رو کاملاً از تأثیر زوم خارج کن
-        const controlMenu = document.getElementById('control-menu');
-        if (controlMenu) {
-            controlMenu.style.transform = 'none';
-            controlMenu.style.zoom = '100%';
-            controlMenu.style.position = 'fixed';
-            controlMenu.style.bottom = '20px';
-            controlMenu.style.right = '20px';
-            controlMenu.style.zIndex = '99999';
-        }
-        
-        // sub-controls رو هم چک کن
-        const subControls = document.getElementById('sub-controls');
-        if (subControls) {
-            subControls.style.transform = 'none';
-            subControls.style.zoom = '100%';
-        }
-        
-        // مطمئن شو بلور تحت تأثیر زوم قرار نگیره
-        const blurOverlay = document.getElementById('background-overlay');
-        if (blurOverlay) {
-            blurOverlay.style.transform = 'none';
-            blurOverlay.style.zoom = '100%';
-        }
-		
-        console.log('زوم روی wrapper اعمال شد:', zoomPercent + '%');
-    }
-}
-
-
-
-    static saveZoom() {
-        StorageManager.set('netcofe_zoom_level', state.zoomLevel);
-        console.log('زوم ذخیره شد:', state.zoomLevel + '%');
     }
 
     static updateZoomDisplay() {
@@ -508,91 +481,77 @@ static applyZoom() {
         const zoomOutBtn = document.getElementById('zoom-out-btn');
         const zoomInBtn = document.getElementById('zoom-in-btn');
         
-        console.log('به‌روزرسانی نمایش زوم:', state.zoomLevel + '%');
-        
         if (display) {
             display.textContent = `${state.zoomLevel}%`;
         }
         
+        // غیرفعال کردن دکمه‌ها در حد min/max جدید
         if (zoomOutBtn) {
-            zoomOutBtn.classList.toggle('disabled', state.zoomLevel <= 75);
+            zoomOutBtn.classList.toggle('disabled', state.zoomLevel <= this.MIN_ZOOM);
+            zoomOutBtn.title = `کوچک‌نمایی (${this.MIN_ZOOM}-${this.MAX_ZOOM}%)`;
         }
         if (zoomInBtn) {
-            zoomInBtn.classList.toggle('disabled', state.zoomLevel >= 125);
+            zoomInBtn.classList.toggle('disabled', state.zoomLevel >= this.MAX_ZOOM);
+            zoomInBtn.title = `بزرگ‌نمایی (${this.MIN_ZOOM}-${this.MAX_ZOOM}%)`;
         }
     }
 
-static setupEventListeners() {
-    console.log('تنظیم رویدادهای زوم...');
-    
-    const zoomOutBtn = document.getElementById('zoom-out-btn');
-    const zoomInBtn = document.getElementById('zoom-in-btn');
-    
-    // حذف event listenerهای قبلی
-    if (this._zoomOutHandler) {
-        zoomOutBtn.removeEventListener('click', this._zoomOutHandler);
-    }
-    if (this._zoomInHandler) {
-        zoomInBtn.removeEventListener('click', this._zoomInHandler);
-    }
-    
-    // تعریف handlerها
-    this._zoomOutHandler = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
+    static setupEventListeners() {
+        const zoomOutBtn = document.getElementById('zoom-out-btn');
+        const zoomInBtn = document.getElementById('zoom-in-btn');
         
-        console.log('کلیک روی دکمه -');
-        console.log('state.zoomLevel قبل:', state.zoomLevel);
-        
-        if (state.zoomLevel > 75) {
-            state.zoomLevel -= 1;
-            console.log('state.zoomLevel بعد:', state.zoomLevel);
+        if (zoomOutBtn && zoomInBtn) {
+            // دکمه کوچک‌نمایی
+            zoomOutBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                if (state.zoomLevel > this.MIN_ZOOM) {
+                    state.zoomLevel -= this.ZOOM_STEP;
+                    this.applyZoom();
+                    this.saveZoom();
+                    this.updateZoomDisplay();
+                }
+            });
             
-            ZoomManager.applyZoom();
-            ZoomManager.saveZoom();
-            ZoomManager.updateZoomDisplay();
+            // دکمه بزرگ‌نمایی
+            zoomInBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                if (state.zoomLevel < this.MAX_ZOOM) {
+                    state.zoomLevel += this.ZOOM_STEP;
+                    this.applyZoom();
+                    this.saveZoom();
+                    this.updateZoomDisplay();
+                }
+            });
             
-            zoomOutBtn.style.transform = 'scale(0.9)';
-            setTimeout(() => {
-                zoomOutBtn.style.transform = '';
-            }, 200);
+            // کنترل با کیبورد
+            document.addEventListener('keydown', (e) => {
+                if (state.isEditMode) {
+                    if (e.ctrlKey && e.key === '-') {
+                        e.preventDefault();
+                        zoomOutBtn.click();
+                    } else if (e.ctrlKey && e.key === '=' || e.ctrlKey && e.key === '+') {
+                        e.preventDefault();
+                        zoomInBtn.click();
+                    } else if (e.ctrlKey && e.key === '0') {
+                        e.preventDefault();
+                        state.zoomLevel = 100;
+                        this.applyZoom();
+                        this.saveZoom();
+                        this.updateZoomDisplay();
+                    }
+                }
+            });
         }
-    };
-    
-    this._zoomInHandler = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        
-        console.log('کلیک روی دکمه +');
-        console.log('state.zoomLevel قبل:', state.zoomLevel);
-        
-        if (state.zoomLevel < 125) {
-            state.zoomLevel += 1;
-            console.log('state.zoomLevel بعد:', state.zoomLevel);
-            
-            ZoomManager.applyZoom();
-            ZoomManager.saveZoom();
-            ZoomManager.updateZoomDisplay();
-            
-            zoomInBtn.style.transform = 'scale(0.9)';
-            setTimeout(() => {
-                zoomInBtn.style.transform = '';
-            }, 200);
-        }
-    };
-    
-    // اضافه کردن event listenerها
-    zoomOutBtn.addEventListener('click', this._zoomOutHandler);
-    zoomInBtn.addEventListener('click', this._zoomInHandler);
-    
-    console.log('رویدادها با موفقیت تنظیم شدند');
+    }
+
+    static saveZoom() {
+        StorageManager.set('netcofe_zoom_level', state.zoomLevel);
+    }
 }
-
-
-}
-
 
 // ==================== مدیریت لایه بلور پس‌زمینه ====================
 class OverlayManager {
