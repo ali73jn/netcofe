@@ -2917,6 +2917,16 @@ class EventManager {
                 }
             });
         }
+		
+		// دکمه تغییر شهر (در منوی کنترل‌ها)
+const globalCityChangeBtn = document.getElementById('global-city-change-btn');
+if (globalCityChangeBtn) {
+    globalCityChangeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        Renderer.openCitySelectorModal();
+    });
+}
         
         // دکمه تغییر تم
         const themeBtn = document.getElementById('toggle-theme-btn');

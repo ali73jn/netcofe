@@ -761,7 +761,7 @@ html, body {
 .tile.tile-grid-mode .tile-icon {
     width: 36px !important;
     height: 36px !important;
-    margin-bottom: 5px;
+    margin-bottom: 1px;
     border-radius: 8px;
     object-fit: contain;
 }
@@ -1167,23 +1167,22 @@ html, body {
 
 
 
-/* استایل کانتر بازدید */
+/* استایل کانتر بازدید با hitscounter.dev */
 .counter-container {
     background: #ffffff;
     border: 1px solid #e0e0e0;
     border-radius: 25px;
-    padding: 0 8px; /* فاصله از چپ و راست رو کم کردم */
-    margin: 0 6px; /* فاصله با دکمه‌های مجاور رو کم کردم */
+    padding: 0 6px; /* فاصله کم‌تر */
+    margin: 0 5px;
     height: 44px;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     opacity: 0;
     visibility: hidden;
     transition: all 0.3s ease;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    min-width: 60px; /* حداقل عرض رو کم کردم */
-    max-width: 150px; /* حداکثر عرض رو محدود کردم */
+    min-width: 90px; /* کمی بزرگتر چون این کانتر ممکنه بزرگتر باشه */
 }
 
 .counter-container.visible-on-edit {
@@ -1201,32 +1200,41 @@ html, body {
 }
 
 .counter-container img {
-    height: 20px; /* ارتفاع تصویر رو کم کردم */
+    height: 25px; /* ارتفاع کمی بیشتر */
     width: auto;
     object-fit: contain;
-    max-width: 100%; /* تصویر بیشتر از عرض مستطیل نشه */
+    max-width: 100%;
 }
 
 /* حالت تاریک */
 [data-theme="dark"] .counter-container {
-    background: #ffffff;
+    background: #000000;
     border-color: #444444;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* حالت هاور */
+.counter-container:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="dark"] .counter-container:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 /* برای موبایل */
 @media (max-width: 768px) {
     .counter-container {
         margin: 0 4px;
-        padding: 0 6px;
+        padding: 0 5px;
         height: 40px;
         border-radius: 20px;
-        min-width: 50px;
-        max-width: 120px;
+        min-width: 80px;
     }
     
     .counter-container img {
-        height: 22px;
+        height: 28px;
     }
 }
 
@@ -1234,18 +1242,16 @@ html, body {
 @media (max-width: 480px) {
     .counter-container {
         margin: 0 3px;
-        padding: 0 5px;
+        padding: 0 4px;
         height: 38px;
         border-radius: 19px;
-        min-width: 45px;
-        max-width: 100px;
+        min-width: 70px;
     }
     
     .counter-container img {
-        height: 20px;
+        height: 26px;
     }
 }
-
 
 
 
@@ -1270,7 +1276,7 @@ html, body {
     transition: all 0.3s ease;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* سایه ملایم */
     min-width: 120px; /* حداقل عرض */
-    color: #333; /* رنگ متن */
+    color: rgba(30, 160, 160, 0.8); /* رنگ متن */
     font-family: 'Vazirmatn', Tahoma, sans-serif; /* فونت */
     font-size: 14px; /* سایز فونت */
     font-weight: 500; /* ضخامت فونت */
@@ -1324,3 +1330,5 @@ html, body {
         font-size: 12px;
     }
 }
+
+
