@@ -2137,3 +2137,224 @@ body {
     outline: 2px solid #1a73e8;
     outline-offset: 2px;
 }
+
+
+.welcome-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+    animation: fadeIn 0.3s ease;
+}
+
+.welcome-modal {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    width: 90%;
+    max-width: 500px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.4s ease;
+    color: white;
+}
+
+.welcome-header {
+    text-align: center;
+    padding: 30px 30px 20px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.welcome-icon {
+    font-size: 50px;
+    margin-bottom: 15px;
+    animation: bounce 2s infinite;
+}
+
+.welcome-header h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.welcome-body {
+    padding: 25px 30px;
+    background: rgba(255, 255, 255, 0.95);
+    color: #333;
+}
+
+.welcome-tip {
+    display: flex;
+    align-items: flex-start;
+    background: #fff8e1;
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 25px;
+    border-right: 4px solid #ffb300;
+}
+
+.tip-icon {
+    font-size: 28px;
+    margin-left: 15px;
+    flex-shrink: 0;
+}
+
+.tip-content {
+    flex-grow: 1;
+}
+
+.tip-title {
+    font-weight: 700;
+    font-size: 16px;
+    color: #5d4037;
+    margin: 0 0 8px 0;
+}
+
+.tip-text {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #666;
+}
+
+.tip-text strong {
+    color: #5d4037;
+    background: #ffecb3;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.welcome-features {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin: 25px 0;
+}
+
+.feature-item {
+    display: flex;
+    align-items: center;
+    background: white;
+    padding: 12px 15px;
+    border-radius: 10px;
+    border: 1px solid #e0e0e0;
+    transition: all 0.3s ease;
+}
+
+.feature-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    border-color: #667eea;
+}
+
+.feature-icon {
+    font-size: 20px;
+    margin-left: 10px;
+    flex-shrink: 0;
+}
+
+.feature-item span:last-child {
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.feature-item strong {
+    color: #667eea;
+}
+
+.welcome-note {
+    background: #e3f2fd;
+    border-radius: 12px;
+    padding: 15px;
+    border-right: 4px solid #2196f3;
+    margin-top: 20px;
+}
+
+.welcome-note p {
+    margin: 0;
+    font-size: 13px;
+    color: #1565c0;
+    line-height: 1.6;
+}
+
+.welcome-footer {
+    padding: 20px 30px;
+    background: rgba(255, 255, 255, 0.1);
+    text-align: center;
+}
+
+.welcome-btn {
+    background: white;
+    color: #667eea;
+    border: none;
+    padding: 14px 40px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.welcome-btn:hover {
+    background: #f8f9fa;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.welcome-btn:active {
+    transform: translateY(0);
+}
+
+/* انیمیشن‌ها */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(40px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+/* ریسپانسیو */
+@media (max-width: 480px) {
+    .welcome-modal {
+        width: 95%;
+        margin: 20px;
+    }
+    
+    .welcome-header {
+        padding: 20px 20px 15px;
+    }
+    
+    .welcome-header h2 {
+        font-size: 20px;
+    }
+    
+    .welcome-body {
+        padding: 20px;
+    }
+    
+    .welcome-features {
+        grid-template-columns: 1fr;
+    }
+}

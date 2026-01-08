@@ -3864,9 +3864,76 @@ class App {
             const firstRun = !StorageManager.get('netcofe_first_run');
             if (firstRun) {
                 StorageManager.set('netcofe_first_run', true);
-                setTimeout(() => {
-                    //alert('🎉 به همیار کافینت خوش آمدید!');
-                }, 1000);
+setTimeout(() => {
+    const welcomeHTML = `
+        <div class="welcome-overlay" id="welcome-overlay">
+            <div class="welcome-modal">
+                <div class="welcome-header">
+                    <div class="welcome-icon">🎉</div>
+                    <h2>به همیار کافینت خوش آمدید!</h2>
+                </div>
+                
+                <div class="welcome-body">
+                    <div class="welcome-tip">
+                        <div class="tip-icon">✨</div>
+                        <div class="tip-content">
+                            <p class="tip-title">شروع سفارشی‌سازی</p>
+                            <p class="tip-text">بعد از اولین ورود به سایت لطفا برای تنظیم محیط کاری به سلیقه خودتان، روی دکمه <strong> ✏️ ویرایش </strong> کلیک کنید و موارد زیر را به سلیقه خود اصلاح کنید.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="welcome-features">
+                        <div class="feature-item">
+                            <span class="feature-icon">🔍</span>
+                            <span>تنظیم <strong>میزان زوم</strong> صفحه</span>
+                        </div>
+                        <div class="feature-item">
+                            <span class="feature-icon">🎨</span>
+                            <span>انتخاب <strong>تصویر زمینه</strong> دلخواه</span>
+                        </div>
+                        <div class="feature-item">
+                            <span class="feature-icon">📐</span>
+                            <span>چیدمان <strong>ویجت‌ها و ابزارها</strong></span>
+                        </div>
+                        <div class="feature-item">
+                            <span class="feature-icon">🎯</span>
+                            <span>سازماندهی <strong>بوکمارک‌های</strong> پرکاربرد</span>
+                        </div>
+                    </div>
+                    
+                    <div class="welcome-note">
+                        <p>💡 <strong>نکته:</strong> می‌توانید همیشه از منوی   ✏️ ویرایش  ، این موارد را تغییر دهید.</p>
+                    </div>
+                </div>
+                
+                <div class="welcome-footer">
+                    <button class="welcome-btn" id="welcome-close">
+                        ورود به همیار کافینت
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // اضافه کردن به صفحه
+    document.body.insertAdjacentHTML('beforeend', welcomeHTML);
+    
+    // رویداد بستن پیام
+    document.getElementById('welcome-close').addEventListener('click', function() {
+        document.getElementById('welcome-overlay').remove();
+        // ذخیره اینکه کاربر ورود اول را دیده است
+        localStorage.setItem('cafinet_welcome_seen', 'true');
+    });
+    
+    // بستن با کلیک روی overlay
+    document.getElementById('welcome-overlay').addEventListener('click', function(e) {
+        if (e.target.id === 'welcome-overlay') {
+            this.remove();
+            localStorage.setItem('cafinet_welcome_seen', 'true');
+        }
+    });
+    
+}, 1000);
             }
             
         } catch (error) {
