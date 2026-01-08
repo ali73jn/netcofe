@@ -1208,7 +1208,7 @@ html, body {
 
 /* حالت تاریک */
 [data-theme="dark"] .counter-container {
-    background: #000000;
+    background: #ffffff;
     border-color: #444444;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
@@ -1802,21 +1802,6 @@ body {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /* ==================== منوی کنترل بلور ==================== */
 .blur-control-menu {
     position: absolute;
@@ -2065,3 +2050,90 @@ body {
 
 
 
+
+
+
+.result-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-radius: 8px;
+    background: white;
+    margin-bottom: 8px;
+    border: 1px solid #e0e0e0;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+}
+
+.result-item:hover {
+    background: #f5f5f5;
+    border-color: #4a90e2;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.result-item:active {
+    transform: translateY(0);
+    background: #e8f0fe;
+}
+
+.result-icon {
+    font-size: 20px;
+    margin-left: 12px;
+    flex-shrink: 0;
+}
+
+.result-info {
+    flex-grow: 1;
+    min-width: 0; /* برای truncate متن */
+}
+
+.result-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: #202124;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.result-desc {
+    font-size: 12px;
+    color: #5f6368;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.result-category-tag {
+    display: inline-block;
+    background: #e8f0fe;
+    color: #1a73e8;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-top: 4px;
+}
+
+.result-link-icon {
+    font-size: 18px;
+    color: #5f6368;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+    flex-shrink: 0;
+}
+
+.result-item:hover .result-link-icon {
+    opacity: 1;
+    color: #1a73e8;
+}
+
+/* برای هایلایت لینک در حالت focus (دسترسی‌پذیری) */
+.result-item:focus {
+    outline: 2px solid #1a73e8;
+    outline-offset: 2px;
+}

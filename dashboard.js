@@ -2876,65 +2876,81 @@ static showSearchResults(searchTerm, results) {
     modal.id = 'search-results-modal';
     modal.className = 'search-modal';
     
-    let resultsHTML = '';
+let resultsHTML = '';
+
+if (results.total === 0) {
+    resultsHTML = `
+        <div class="no-results">
+            <p>❌ هیچ نتیجه‌ای برای "${searchTerm}" یافت نشد</p>
+        </div>
+    `;
+} else {
+    // فیلتر کردن پوشه‌ها
+    const bookmarksOnly = results.results.filter(item => 
+        !item.children && item.type !== 'folder' && !item.isFolder && item.url
+    );
     
-    if (results.total === 0) {
+    if (bookmarksOnly.length === 0) {
         resultsHTML = `
             <div class="no-results">
-                <p>❌ هیچ نتیجه‌ای برای "${searchTerm}" یافت نشد</p>
+                <p>❌ هیچ بوکمارکی برای "${searchTerm}" یافت نشد</p>
             </div>
         `;
     } else {
-        // گروه‌بندی نتایج بر اساس دسته‌بندی/پوشه
-        const groupedResults = this.groupResultsByCategory(results.results);
+        resultsHTML += `
+            <div class="result-category">
+                <h4>🔗 بوکمارک‌ها (${bookmarksOnly.length})</h4>
+                <div class="result-items">
+        `;
         
-        for (const [category, items] of Object.entries(groupedResults)) {
+        // محدود کردن نمایش
+        const displayItems = bookmarksOnly.slice(0, 20);
+        
+        for (const item of displayItems) {
             resultsHTML += `
-                <div class="result-category">
-                    <h4>📁 ${category} (${items.length})</h4>
-                    <div class="result-items">
+                <a href="${item.url}" target="_blank" class="result-item result-bookmark" 
+                     data-id="${item.id}"
+                     title="کلیک کنید: ${item.url}">
+                    <div class="result-icon">🔗</div>
+                    <div class="result-info">
+                        <div class="result-title">${item.title}</div>
+                        ${item.description ? 
+                            `<div class="result-desc">${item.description}</div>` : ''}
+                        ${item.category ? 
+                            `<div class="result-category-tag">${item.category}</div>` : ''}
+                    </div>
+                    <div class="result-link-icon" title="باز کردن در تب جدید">🔗</div>
+                </a>
             `;
-            
-            // محدود کردن نمایش به 10 آیتم اول در هر دسته
-            const displayItems = items.slice(0, 10);
-            
-            for (const item of displayItems) {
-                const isFolder = item.children || item.type === 'folder';
-                const icon = isFolder ? '📁' : '🔗';
-                
-                resultsHTML += `
-                    <div class="result-item ${isFolder ? 'result-folder' : 'result-bookmark'}" 
-                         data-id="${item.id}" 
-                         data-category="${category}">
-                        <div class="result-icon">${icon}</div>
-                        <div class="result-info">
-                            <div class="result-title">${item.title}</div>
-                            ${item.description ? 
-                                `<div class="result-desc">${item.description}</div>` : ''}
-                        </div>
-                        ${item.url && !isFolder ? 
-                            `<a href="${item.url}" target="_blank" class="result-link" title="باز کردن">🔗</a>` : 
-                            '<button class="result-open-folder" title="باز کردن پوشه">📂</button>'
-                        }
-                    </div>
-                `;
-            }
-            
-            // اگر آیتم‌های بیشتری وجود دارد
-            if (items.length > 10) {
-                resultsHTML += `
-                    <div class="more-results">
-                        +${items.length - 10} مورد دیگر...
-                    </div>
-                `;
-            }
-            
+        }
+        
+        if (bookmarksOnly.length > 20) {
             resultsHTML += `
-                    </div>
+                <div class="more-results">
+                    +${bookmarksOnly.length - 20} مورد دیگر...
                 </div>
             `;
         }
+        
+        resultsHTML += `
+                </div>
+            </div>
+        `;
     }
+}
+
+modal.innerHTML = `
+    <div class="search-modal-overlay" id="search-modal-overlay"></div>
+    <div class="search-modal-content" id="search-modal-content">
+        <div class="search-modal-header">
+            <h3>🔍 نتایج برای "${searchTerm}"</h3>
+            <button class="close-search-modal" id="close-search-modal">×</button>
+        </div>
+        <div class="search-modal-body">
+            ${resultsHTML}
+        </div>
+    </div>
+`;
     
     modal.innerHTML = `
         <div class="search-modal-overlay" id="search-modal-overlay"></div>
